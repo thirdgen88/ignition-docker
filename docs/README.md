@@ -53,7 +53,9 @@ The `ignition.conf` file can be used to customize the gateway launch parameters 
 
 If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignition gateway configuration file, you can start the `ignition` container with the following command:
 
-    $ docker run --name my-ignition -v /path/to/custom/ignition.conf:/var/lib/ignition/data/ignition.conf -d kcollins/ignition:tag
+    $ docker run --name my-ignition \
+        -v /path/to/custom/ignition.conf:/var/lib/ignition/data/ignition.conf \
+        -d kcollins/ignition:tag
 
 This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container). 
 
