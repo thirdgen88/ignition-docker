@@ -1,6 +1,6 @@
 # Supported tags and respective `Dockerfile` links
 
-* [`7.9.4`, `7.9` (7.9/Dockerfile)]()
+* [`7.9.4`, `7.9` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
 # Quick Reference
 
