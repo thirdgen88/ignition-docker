@@ -13,6 +13,9 @@ Kevin Collins (independent Ignition enthusiast)
 * **Supported architectures**:
 `amd64`
 
+* **Source of this description:**
+https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
+
 # What is Ignition?
 
 Ignition is a SCADA software platform made by [Inductive Automation](http://inductiveautomation.com).  This repository, intended for development use on the Ignition platform, is not sponsored by Inductive Automation, please visit their website for more information.
