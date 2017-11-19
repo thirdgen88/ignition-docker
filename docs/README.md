@@ -59,6 +59,19 @@ If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignit
 
 This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container). 
 
+# Caveats
+
+## How to persist Gateway data
+
+With no additional options for volume management specified to the container, all of the information related to the Gateway state is contained wholly inside the storage layers of the container itself.  If you need to change the container configuration in some way (requiring a new container, for example), this puts your data in a precarious position.  While this may be acceptable for short-term dev scenarios, longer term solutions are better solved by utilizing a data volume to house state-data of the container.  See the Docker Reference about how to [use Volumes](https://docs.docker.com/engine/admin/volumes/volumes/) for more information.
+
+Getting a volume created is as simple as using a `-v` flag when starting your container:
+
+    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition \
+        -d kcollins/ignition:tag
+
+This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
+
 # License
 
 For licensing information, consult the following links:
