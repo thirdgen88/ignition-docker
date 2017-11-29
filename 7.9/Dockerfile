@@ -29,6 +29,18 @@ RUN wget -q -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
     ./${INSTALLER_NAME} --username ${IGNITION_INSTALL_USERNAME} --unattendedmodeui none --mode unattended --prefix ${IGNITION_INSTALL_LOCATION} && \
     rm ${INSTALLER_NAME}
 
+# Clean-up symbolic links back to /etc/ignition so we can ensure preservation of instance configuration in /var/lib/ignition
+RUN rm /var/lib/ignition/data/gateway.xml && \
+    cp /etc/ignition/gateway.xml /var/lib/ignition/data/ && \
+    chown ${IGNITION_INSTALL_USERNAME}.root /var/lib/ignition/data/gateway.xml && \
+    rm /var/lib/ignition/data/ignition.conf && \
+    cp /etc/ignition/ignition.conf /var/lib/ignition/data/ && \
+    chown ${IGNITION_INSTALL_USERNAME}.root /var/lib/ignition/data/ignition.conf && \
+    rm /var/lib/ignition/data/log4j.properties && \
+    cp /etc/ignition/log4j.properties /var/lib/ignition/data/ && \
+    chown ${IGNITION_INSTALL_USERNAME}.root /var/lib/ignition/data/log4j.properties && \
+    rm -rf /etc/ignition
+
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=45s --timeout=3s \
     CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep RUNNING
