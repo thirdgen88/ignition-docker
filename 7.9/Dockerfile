@@ -5,9 +5,9 @@ LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 RUN apt-get update && apt-get install -y gettext procps
 
 # Select Ignition Version
-ENV IGNITION_VERSION="7.9.7rc1"
-ENV IGNITION_DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7-rc1/20180312-1256/Ignition-7.9.7-rc1-linux-x64-installer.run"
-ENV IGNITION_DOWNLOAD_MD5="3103955cabf5f6261b6a255462d57422"
+ENV IGNITION_VERSION="7.9.7"
+ENV IGNITION_DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run"
+ENV IGNITION_DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
