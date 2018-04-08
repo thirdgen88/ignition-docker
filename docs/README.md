@@ -1,6 +1,7 @@
 # Supported tags and respective `Dockerfile` links
 
 * [`7.9.7`, `7.9`, `latest` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.9.7-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
 # Quick Reference
 
@@ -33,6 +34,13 @@ You can start an instance of Ignition in its own container as below:
     $ docker run -p 8088:8088 --name my-ignition -d kcollins/ignition:tag
 
 ... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for available tags.
+
+## Start an `ignition-edge` gateway instance
+If you want to run the Ignition Edge variant, simply use the `-edge` suffix on the desired tag:
+
+    $ docker run -p 8088:8088 --name my-ignition-edge -d kcollins/ignition:tag-edge
+
+The `tag` would be replaced with the version, so your resultant image name might be something like `kcollins/ignition:7.9.7-edge`.
 
 ## Connect to your Ignition instance
 This image exposes the standard gateway ports (`8088`, `8043`), so if you utilize the `run` sequence above, you'll be able to connect to your instance against your host computer's port `8088`.  If you wish to utilize the SSL connection, simply publish `8043` as well.
