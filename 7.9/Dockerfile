@@ -54,6 +54,8 @@ VOLUME /var/lib/ignition
 # Launch Ignition
 USER ${IGNITION_INSTALL_USERNAME}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
+RUN mkdir -p jre-tmp
+
 ENTRYPOINT [ "./ignition-gateway" \
     , "/var/lib/ignition/data/ignition.conf" \
     , "wrapper.syslog.ident=Ignition Gateway" \
