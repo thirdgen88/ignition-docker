@@ -1,0 +1,26 @@
+language: bash
+services: docker
+
+env:
+  - MAJOR_VERSION=7.9 FULL_VERSION=7.9.7 DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run" DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
+  - MAJOR_VERSION=7.9 FULL_VERSION=7.9.7 EDITION=edge DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run" DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
+
+before_script:
+  - cd "$MAJOR_VERSION"
+  # Specify image as "kcollins/ignition:7.9.7" or "kcollins/ignition:7.9.7-edge" if edition is set to edge
+  - image="kcollins/ignition:$FULL_VERSION${EDITION:+-$EDITION}"
+
+script:
+  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} --build-arg IGNITION_VERSION=$FULL_VERSION --build-arg IGNITION_DOWNLOAD_URL=$DOWNLOAD_URL --build-arg IGNITION_DOWNLOAD_MD5=$DOWNLOAD_MD5 -t "$image" .
+
+after_script:
+  - docker images
+
+# before_deploy:
+#   - docker login -u "$HUB_LOGIN" -p "$HUB_PASSWORD"
+
+# deploy:
+#   provider: script
+#   script: docker push "$image"
+#   on:
+#     branch: master

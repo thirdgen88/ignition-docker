@@ -4,10 +4,11 @@ LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y gettext procps
 
-# Select Ignition Version
-ENV IGNITION_VERSION="7.9.7"
-ENV IGNITION_DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run"
-ENV IGNITION_DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
+# Select Ignition Version and Edition
+ARG IGNITION_VERSION="7.9.7"
+ARG IGNITION_DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run"
+ARG IGNITION_DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
+ARG IGNITION_EDITION=full
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
@@ -19,6 +20,7 @@ ENV IGNITION_INSTALL_GROUPNAME="ignition"
 ENV INSTALLER_PATH /root
 ENV INSTALLER_NAME "ignition-installer.run"
 WORKDIR ${INSTALLER_PATH}
+
 RUN wget -q -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
     echo "${IGNITION_DOWNLOAD_MD5} ${INSTALLER_NAME}" | md5sum -c - && \
     chmod a+x $INSTALLER_NAME && \
@@ -26,7 +28,7 @@ RUN wget -q -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
     groupadd -r ${IGNITION_INSTALL_GROUPNAME} && \
     useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERNAME} && \
     chown ${IGNITION_INSTALL_USERNAME}:${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERHOME} && \
-    ./${INSTALLER_NAME} --username ${IGNITION_INSTALL_USERNAME} --unattendedmodeui none --mode unattended --prefix ${IGNITION_INSTALL_LOCATION} && \
+    ./${INSTALLER_NAME} --username ${IGNITION_INSTALL_USERNAME} --unattendedmodeui none --mode unattended --edition ${IGNITION_EDITION} --prefix ${IGNITION_INSTALL_LOCATION} && \
     rm ${INSTALLER_NAME}
 
 # Clean-up symbolic links back to /etc/ignition so we can ensure preservation of instance configuration in /var/lib/ignition
