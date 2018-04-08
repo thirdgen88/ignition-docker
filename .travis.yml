@@ -5,6 +5,7 @@ env:
   global:
     - DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run"
     - DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
+    - IMAGE_NAME=kcollins/ignition
   matrix:
     - MAJOR_VERSION=7.9 FULL_VERSION=7.9.7
     - MAJOR_VERSION=7.9 FULL_VERSION=7.9.7 EDITION=edge
@@ -12,19 +13,23 @@ env:
 before_script:
   - cd "$MAJOR_VERSION"
   # Specify image as "kcollins/ignition:7.9.7" or "kcollins/ignition:7.9.7-edge" if edition is set to edge
-  - image="kcollins/ignition:$FULL_VERSION${EDITION:+-$EDITION}"
+  - FULL_IMAGE="$IMAGE_NAME:$FULL_VERSION${EDITION:+-$EDITION}"
+  - MAJOR_IMAGE="$IMAGE_NAME:$MAJOR_VERSION${EDITION:+-$EDITION}"
+  - LATEST_IMAGE="$IMAGE_NAME:latest${EDITION:+-$EDITION}"
 
 script:
-  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} --build-arg IGNITION_VERSION=$FULL_VERSION --build-arg IGNITION_DOWNLOAD_URL=$DOWNLOAD_URL --build-arg IGNITION_DOWNLOAD_MD5=$DOWNLOAD_MD5 -t "$image" .
+  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} --build-arg IGNITION_VERSION=$FULL_VERSION --build-arg IGNITION_DOWNLOAD_URL=$DOWNLOAD_URL --build-arg IGNITION_DOWNLOAD_MD5=$DOWNLOAD_MD5 -t "$FULL_IMAGE" .
 
 after_script:
   - docker images
 
 before_deploy:
   - echo $HUB_PASSWORD | docker login -u "$HUB_LOGIN" --password-stdin
+  - docker tag "$FULL_IMAGE" "$MAJOR_IMAGE"
+  - docker tag "$MAJOR_IMAGE" "$LATEST_IMAGE"
 
 deploy:
   provider: script
-  script: docker push "$image"
+  script: docker push "$FULL_IMAGE" && docker push "$MAJOR_IMAGE" && docker push "$LATEST_IMAGE"
   on:
     branch: master
