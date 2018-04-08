@@ -21,7 +21,7 @@ after_script:
   - docker images
 
 before_deploy:
-  - docker login -u "$HUB_LOGIN" -p "$HUB_PASSWORD"
+  - echo $HUB_PASSWORD | docker login -u "$HUB_LOGIN" --password-stdin
 
 deploy:
   provider: script
