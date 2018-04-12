@@ -50,9 +50,6 @@ HEALTHCHECK --interval=10s --start-period=45s --timeout=3s \
 # Setup Port Expose
 EXPOSE 8088 8043 8000
 
-# Declare volume for instance-specific data
-VOLUME /var/lib/ignition
-
 # Launch Ignition
 USER ${IGNITION_INSTALL_USERNAME}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
