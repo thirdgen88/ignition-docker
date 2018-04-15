@@ -44,7 +44,7 @@ RUN rm /var/lib/ignition/data/gateway.xml && \
     rm -rf /etc/ignition
 
 # Declare Healthcheck
-HEALTHCHECK --interval=10s --start-period=45s --timeout=3s \
+HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
     CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep RUNNING
 
 # Setup Port Expose
@@ -55,7 +55,11 @@ USER ${IGNITION_INSTALL_USERNAME}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 RUN mkdir -p jre-tmp
 
-ENTRYPOINT [ "./ignition-gateway" \
+# Setup Entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT [ "docker-entrypoint.sh" ]
+
+CMD [ "./ignition-gateway" \
     , "/var/lib/ignition/data/ignition.conf" \
     , "wrapper.syslog.ident=Ignition Gateway" \
     , "wrapper.pidfile=./Ignition Gateway.pid" \

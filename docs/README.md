@@ -42,6 +42,13 @@ If you want to run the Ignition Edge variant, simply use the `-edge` suffix on t
 
 The `tag` would be replaced with the version, so your resultant image name might be something like `kcollins/ignition:7.9.7-edge`.
 
+## Restore an existing gateway backup on container startup
+You can now use this image to restore a gateway backup on first-start of the container.  Bind-mount the gateway backup to `/restore.gwbk` and the image will take care of the rest:
+
+    $ docker run -p 8088:8088 --name my-ignition -v /path/to/gateway.gwbk:/restore.gwbk -d kcollins/ignition:tag
+
+Specify the full path to your gateway backup file in the `-v` bind-mount argument.  The container will start up, restore the backup, and then restart.
+
 ## Connect to your Ignition instance
 This image exposes the standard gateway ports (`8088`, `8043`), so if you utilize the `run` sequence above, you'll be able to connect to your instance against your host computer's port `8088`.  If you wish to utilize the SSL connection, simply publish `8043` as well.
 
