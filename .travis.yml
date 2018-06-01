@@ -3,12 +3,12 @@ services: docker
 
 env:
   global:
-    - DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.7/20180329-1416/Ignition-7.9.7-linux-x64-installer.run"
-    - DOWNLOAD_MD5="8e933f166cf324463b195b5a1f4bff01"
+    - DOWNLOAD_URL="http://files.inductiveautomation.com/release/ia/build7.9.8/20180531-1346/Ignition-7.9.8-linux-x64-installer.run"
+    - DOWNLOAD_MD5="92b3fd4de27ea95cdf75f6f91fb813b2"
     - IMAGE_NAME=kcollins/ignition
   matrix:
-    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.7
-    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.7 EDITION=edge
+    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.8
+    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.8 EDITION=edge
 
 before_script:
   - cd "$MAJOR_VERSION"
