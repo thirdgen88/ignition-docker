@@ -3,8 +3,8 @@ services: docker
 
 env:
   global:
-    - DOWNLOAD_URL="http://files.inductiveautomation.com/release/ia/build7.9.8/20180531-1346/Ignition-7.9.8-linux-x64-installer.run"
-    - DOWNLOAD_MD5="92b3fd4de27ea95cdf75f6f91fb813b2"
+    - DOWNLOAD_URL="http://files.inductiveautomation.com/release/ia/build7.9.8/20180607-1450/Ignition-7.9.8-linux-x64-installer.run"
+    - DOWNLOAD_MD5="ffbbf12b3080d8b9d74622fb87c22ca0"
     - IMAGE_NAME=kcollins/ignition
   matrix:
     - MAJOR_VERSION=7.9 FULL_VERSION=7.9.8

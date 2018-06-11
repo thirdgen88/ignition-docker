@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y gettext procps
 
 # Select Ignition Version and Edition
 ARG IGNITION_VERSION="7.9.8"
-ARG IGNITION_DOWNLOAD_URL="http://files.inductiveautomation.com/release/ia/build7.9.8/20180531-1346/Ignition-7.9.8-linux-x64-installer.run"
-ARG IGNITION_DOWNLOAD_MD5="92b3fd4de27ea95cdf75f6f91fb813b2"
+ARG IGNITION_DOWNLOAD_URL="http://files.inductiveautomation.com/release/ia/build7.9.8/20180607-1450/Ignition-7.9.8-linux-x64-installer.run"
+ARG IGNITION_DOWNLOAD_MD5="ffbbf12b3080d8b9d74622fb87c22ca0"
 ARG IGNITION_EDITION=full
 
 # Setup Install Targets
