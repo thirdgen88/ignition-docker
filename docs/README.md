@@ -2,6 +2,8 @@
 
 * [`7.9.8`, `7.9`, `latest` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.8-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
+* [`7.7.9`, `7.7`, `lts` (7.7/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.7/Dockerfile)
 
 _NOTE_: 7.9.8 is now the 20180607-1450 (previous was 20180531) build which fixes a regression regarding multiple-designer resource locking.
 
