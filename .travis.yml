@@ -31,6 +31,6 @@ before_deploy:
 
 deploy:
   provider: script
-  script: docker push "$FULL_IMAGE" && if [ -z ${PRERELEASE+x}; then docker push "$MAJOR_IMAGE"; fi && if [ ! -z ${LATEST+x} ]; then docker push "$LATEST_IMAGE"; fi
+  script: docker push "$FULL_IMAGE" && if [ -z ${PRERELEASE+x} ]; then docker push "$MAJOR_IMAGE"; fi && if [ ! -z ${LATEST+x} ]; then docker push "$LATEST_IMAGE"; fi
   on:
     branch: master
