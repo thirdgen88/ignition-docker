@@ -21,7 +21,7 @@ ENV INSTALLER_PATH /root
 ENV INSTALLER_NAME "ignition-installer.run"
 WORKDIR ${INSTALLER_PATH}
 
-RUN wget -q -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
+RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
     echo "${IGNITION_DOWNLOAD_MD5} ${INSTALLER_NAME}" | md5sum -c - && \
     chmod a+x $INSTALLER_NAME && \
     mkdir ${IGNITION_INSTALL_USERHOME} && \
