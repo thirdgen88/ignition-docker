@@ -6,7 +6,7 @@ You can build this image yourself with the following:
 
 ... where the `Dockerfile` is in the current directory and `custom-ignition` is the new image name with tag `tag`.
 
-If you've got [Vagrant](https://vagrantup.com) installed, you can leverage the `Vagrantfile` here to automated building and testing the image.  Build the image and start the container with the following:
+If you've got [Vagrant](https://vagrantup.com) installed, you can leverage the `Vagrantfile` here to automate the building and testing of the image.  Build the image and start the container with the following:
 
     $ vagrant up --provider docker
 
