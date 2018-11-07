@@ -5,10 +5,8 @@ env:
   global:
     - IMAGE_NAME=kcollins/ignition
   matrix:
-    - MAJOR_VERSION=7.7 FULL_VERSION=7.7.9
-    - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5
-    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.9
-    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.9 EDITION=edge
+    - PRERELEASE=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.0-beta
+    - PRERELEASE=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.0-beta EDITION=edge
 
 before_script:
   - cd "$MAJOR_VERSION"
@@ -32,4 +30,4 @@ deploy:
   provider: script
   script: docker push "$FULL_IMAGE" && if [ -z ${PRERELEASE+x} ]; then docker push "$MAJOR_IMAGE"; fi && if [ ! -z ${LATEST+x} ]; then docker push "$LATEST_IMAGE"; fi
   on:
-    branch: master
+    branch: 8.0
