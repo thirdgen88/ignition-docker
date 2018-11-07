@@ -2,7 +2,7 @@ FROM alpine:3.8
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apk update & apk add wget
+RUN apk update && apk add wget
 
 # Select Ignition Version and Edition
 ARG IGNITION_VERSION="8.0.0"
