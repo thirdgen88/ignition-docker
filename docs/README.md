@@ -1,5 +1,6 @@
 # Supported tags and respective `Dockerfile` links
 
+* [`8.0.0-beta`, `8.0.0-beta-edge`](https://github.com/thirdgen88/ignition-docker/blob/8.0/8.0/Dockerfile)
 * [`7.9.9`, `7.9`, `latest` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.9-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
@@ -89,11 +90,19 @@ Getting a volume created is as simple as using a `-v` flag when starting your co
 
 This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
 
+# Information on the Ignition 8.0 Beta
+
+The Ignition 8.0 Beta is currently being generated based on nightly builds from Inductive Automation.  These builds are intended for testing only.  If you are interested in providing feedback on the Ignition 8.0 beta, please sign up for [Beta Access](https://inductiveautomation.com/login?next=https://account.inductiveautomation.com/request-beta-access) with Inductive Automation and join the dedicated forum.
+
+Ignition 8.0 now comes with a Java JRE embedded within.  At this time, the embedded JRE (`11.0.1+13-LTS` at the time of writing) is being used for the gateway process; therefore, a base [debian](https://hub.docker.com/_/debian/) slim image is being used to help keep the docker image size down.
+
+Feedback on the Ignition 8.0 docker image is also welcome at the GitHub issues link at the top of the page.
+
 # License
 
 For licensing information, consult the following links:
 
-* OpenJDK Licensing (base image) - http://openjdk.java.net/legal/gplv2+ce.html
+* OpenJDK Licensing (base image for 7.9 and below) - http://openjdk.java.net/legal/gplv2+ce.html
 * Ignition License - https://inductiveautomation.com/ignition/license
 
 As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).
