@@ -2,7 +2,7 @@ FROM alpine:3.8
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y gettext procps
+RUN apk update & apk add wget
 
 # Select Ignition Version and Edition
 ARG IGNITION_VERSION="8.0.0"
@@ -25,8 +25,8 @@ RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${I
 #    echo "${IGNITION_DOWNLOAD_MD5} ${INSTALLER_NAME}" | md5sum -c - && \
     chmod a+x $INSTALLER_NAME && \
     mkdir ${IGNITION_INSTALL_USERHOME} && \
-    groupadd -r ${IGNITION_INSTALL_GROUPNAME} && \
-    useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERNAME} && \
+    addgroup -S ${IGNITION_INSTALL_GROUPNAME} && \
+    adduser -h ${IGNITION_INSTALL_USERHOME} -S ${IGNITION_INSTALL_USERNAME} -G ${IGNITION_INSTALL_GROUPNAME} && \
     chown ${IGNITION_INSTALL_USERNAME}:${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERHOME} && \
     ./${INSTALLER_NAME} --username ${IGNITION_INSTALL_USERNAME} --unattendedmodeui none --mode unattended --edition ${IGNITION_EDITION} --prefix ${IGNITION_INSTALL_LOCATION} && \
     rm ${INSTALLER_NAME}
@@ -53,7 +53,6 @@ EXPOSE 8088 8043 8000
 # Launch Ignition
 USER ${IGNITION_INSTALL_USERNAME}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
-RUN mkdir -p jre-tmp
 
 # Setup Entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
