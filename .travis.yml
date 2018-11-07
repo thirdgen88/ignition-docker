@@ -31,3 +31,7 @@ deploy:
   script: docker push "$FULL_IMAGE" && if [ -z ${PRERELEASE+x} ]; then docker push "$MAJOR_IMAGE"; fi && if [ ! -z ${LATEST+x} ]; then docker push "$LATEST_IMAGE"; fi
   on:
     branch: 8.0
+
+notifications:
+  slack:
+    secure: o5gEQAING73mvdOxdGE76ScFq/bIoXUyf7tOu356aJOU21/0KmVUOEecxnARcU0jLtwk+CFBKKr5VxBt4Zf9Gz7AbSjlP96euIU1gncWAIKdWNVHxmFoiWrULPTRmlNnkxxApedJD4C9CElt9GqoSRr68k1a5fQp7jZ6LtCHcxCskgJXBUIGOr9ynfAwi+BtRl4ExoME3G1mNJ3pbnUZYNwp3L+FXsL+S1i2vd6DGN5lPKUIbEr9xwb9EFidMVojR8hiOi7iq6K+vBlRIxh2/xah4RnhXWpl/mDEVOjF/S8Y8HsYG9nbGef/d0cIW6G09I8bbugPHEFG0NtONQGm+48FCdCyvnC5WAv3dyD2HmzIQiEwolLUvcUa+LcnkgI6hYb0d155uY+kB5sITRJn1VgIw8SBDZKbNCreBSEzzeV1Wxxrt8SCLNkGg2UEW1F1+Nmb/pLlk7ETx9bkHwOrT5CZdAaw5x06HFN+QYs8OxCOQpv3ft5ofd+u/yztoxzTF1OKF8uhuNv/NSb+8hmnWD6XbM7gtEirK1fs235PoTR3l1Dx5jTtETszT5e8jUmNouxrxOcGi7M+LuV2FDcyE0SLPU70PN1tF9J9myBDwV7J6wsfH59cpX23pOCoNLRelL68fOSQ5L69XMRzg9lFP5yQlctvIQSp/gXGpOx6aMk=
