@@ -5,10 +5,10 @@ env:
   global:
     - IMAGE_NAME=kcollins/ignition
   matrix:
-    - MAJOR_VERSION=7.7 FULL_VERSION=7.7.9 DOWNLOAD_MD5="a7a0736dc9ee2e1f25b8ab72d389f9af" DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/build7.7.9/2018060503/ignition-7.7.9-linux-x64-installer.run"
-    - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5 DOWNLOAD_MD5="dffb12fb1df320fb569ca38bcd71b347" DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.8.5/20161208-1312/Ignition-7.8.5-linux-x64-installer.run"
-    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.9 DOWNLOAD_MD5="c714d81f2eeb8ad156754732d3345b49" DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.9/20180816-1452/Ignition-7.9.9-linux-x64-installer.run"
-    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.9 EDITION=edge DOWNLOAD_MD5="c714d81f2eeb8ad156754732d3345b49" DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.9/20180816-1452/Ignition-7.9.9-linux-x64-installer.run"
+    - MAJOR_VERSION=7.7 FULL_VERSION=7.7.9
+    - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5
+    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.9
+    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.9 EDITION=edge
 
 before_script:
   - cd "$MAJOR_VERSION"
@@ -18,7 +18,7 @@ before_script:
   - LATEST_IMAGE="$IMAGE_NAME:latest${EDITION:+-$EDITION}"
 
 script:
-  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} --build-arg IGNITION_VERSION=$FULL_VERSION --build-arg IGNITION_DOWNLOAD_URL=$DOWNLOAD_URL --build-arg IGNITION_DOWNLOAD_MD5=$DOWNLOAD_MD5 -t "$FULL_IMAGE" .
+  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} -t "$FULL_IMAGE" .
 
 after_script:
   - docker images
