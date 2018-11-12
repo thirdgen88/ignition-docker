@@ -2,7 +2,7 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y gettext procps wget
+RUN apt-get update && apt-get install -y curl gettext procps wget
 
 # Select Ignition Version and Edition
 ARG IGNITION_VERSION="8.0.0"
@@ -45,7 +45,7 @@ RUN rm /var/lib/ignition/data/gateway.xml && \
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
-    CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep RUNNING
+    CMD curl -f http://localhost:8088/StatusPing 2>&1 | grep RUNNING
 
 # Setup Port Expose
 EXPOSE 8088 8043 8000

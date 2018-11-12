@@ -1,6 +1,6 @@
 # Ignition 8.0.x Docker Image
 
-**NOTE**: This is currently a NIGHTLY build beta image for Ignition 8.0. 
+**NOTE**: This is currently a NIGHTLY build beta image for Ignition 8.0.  New images are being pushed to Docker Hub under the `kcollins/ignition:8.0.0-beta` tag around 4:30am CST.
 
 You can build this image yourself with the following:
 
