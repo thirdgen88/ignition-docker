@@ -1,8 +1,8 @@
 # Supported tags and respective `Dockerfile` links
 
 * [`8.0.0-beta`, `8.0.0-beta-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/8.0/8.0/Dockerfile)
-* [`7.9.9`, `7.9`, `latest` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
-* [`7.9.9-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.9.10`, `7.9`, `latest` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.9.10-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
 * [`7.7.9`, `7.7`, `lts` (7.7/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.7/Dockerfile)
 
