@@ -55,10 +55,12 @@ USER ${IGNITION_INSTALL_USERNAME}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 RUN mkdir -p jre-tmp
 
-# Setup Entrypoint script
+# Copy in Entrypoint and helper scripts
 COPY docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT [ "docker-entrypoint.sh" ]
+COPY accept-gwnetwork.sh /usr/local/bin/
 
+# Prepare Execution Settings
+ENTRYPOINT [ "docker-entrypoint.sh" ]
 CMD [ "./ignition-gateway" \
     , "/var/lib/ignition/data/ignition.conf" \
     , "wrapper.syslog.ident=Ignition Gateway" \

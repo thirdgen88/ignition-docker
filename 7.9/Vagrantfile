@@ -1,17 +1,62 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker'
+ENV['VAGRANT_NO_PARALLEL'] = 'true'
+
 current_dir = File.dirname(File.expand_path(__FILE__))
 
 Vagrant.configure("2") do |config|
-
-    config.vm.define "ignition" do |ignition|
+    config.trigger.before :up do |trigger|
+        trigger.name = 'Create network ignition-docker'
+        trigger.only_on = "hub"
+        trigger.run = { path: "create-network.sh" }
     end
 
-    config.vm.network "forwarded_port", guest: 8088, host: 8088, host_ip: "127.0.0.1"
+    config.trigger.after :destroy do |trigger|
+        trigger.name = 'Remove network ignition-docker'
+        trigger.only_on = "hub"
+        trigger.run = { path: "remove-network.sh" }
+    end
 
-    config.vm.provider "docker" do |d|
-        d.volumes = [ "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
-        d.build_dir = "."
+    config.vm.define "hub" do |hub|
+        hub.vm.provider "docker" do |d|
+            # d.volumes = [ "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
+            d.build_dir = "."
+            d.build_args = [
+                "-t", "kcollins/ignition:test"
+            ]
+            d.name = "hub"
+            # d.compose = true
+            d.env = {
+                :GATEWAY_SYSTEM_NAME => "ignition-hub",
+                :GATEWAY_USESSL => "false",
+                :GATEWAY_NETWORK_AUTOACCEPT_DELAY => 60
+            }
+            d.create_args = [ 
+                "--network", "ignition-docker"
+            ]
+        end
+
+        hub.vm.network "forwarded_port", guest: 8088, host: 8088, host_ip: "127.0.0.1"
+    end
+
+    config.vm.define "spoke1" do |spoke1|
+        spoke1.vm.provider "docker" do |d|
+            # d.volumes = [ "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
+            d.image = "kcollins/ignition:test"
+            d.name = "spoke1"
+            # d.compose = true
+            d.env = {
+                :GATEWAY_SYSTEM_NAME => "ignition-spoke1",
+                :GATEWAY_USESSL => "false",
+                :GATEWAY_NETWORK_0_HOST => "hub"
+            }
+            d.create_args = [ 
+                "--network", "ignition-docker"
+            ]
+        end
+
+        spoke1.vm.network "forwarded_port", guest: 8088, host: 8089, host_ip: "127.0.0.1"
     end
 end
