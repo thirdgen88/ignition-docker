@@ -52,6 +52,38 @@ You can now use this image to restore a gateway backup on first-start of the con
 
 Specify the full path to your gateway backup file in the `-v` bind-mount argument.  The container will start up, restore the backup, and then restart.
 
+## Gateway Network Provisioning
+
+_New with 7.9.10 Docker image as of 2018-12-29!_
+
+There are additional ways to customize the configuration of the Ignition container via environment variables.  
+
+_Table 1 - General Configurability_
+
+Variable                           | Description                                                            |
+---------------------------------- | ---------------------------------------------------------------------- |
+`GATEWAY_SYSTEM_NAME`              | Set this to a string to drive the Ignition Gateway Name.
+`GATEWAY_USESSL`                   | Set to `true` to enforce connections to the gateway use SSL on port `8043`.
+`GATEWAY_NETWORK_AUTOACCEPT_DELAY` | Number of _seconds_ to auto accept new certificates for incoming gateway network connections.
+
+_Table 2 - Gateway Network Provisioning_
+
+In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
+
+Variable                       | Default | Description                                                          |
+------------------------------ | ------- | -------------------------------------------------------------------- |
+`GATEWAY_NETWORK_n_HOST`       |         | Define host or IP to initiate outbound gateway network connection.
+`GATEWAY_NETWORK_n_PORT`       | `8060`  | Define port for connection (`8060` is default for SSL, `8088` for non-SSL)
+`GATEWAY_NETWORK_n_PINGRATE`   | _gw_    | Frequency in _milliseconds_ for remote machine pings
+`GATEWAY_NETWORK_n_ENABLED`    | _gw_    | Set to `false` to disable connection after creation
+`GATEWAY_NETWORK_n_ENABLESSL`  | `true`  | Set to `false` to use unencrypted connection.
+
+Declaring automatically provisioned gateway network connections will require approval in the remote gateway configuration, unless it is being started at the same time with a nominal `GATEWAY_NETWORK_AUTOACCEPT_DELAY` setting.  
+
+Creating an Ignition Gateway with the gateway name `spoke1` and a single outbound gateway connection to `10.11.12.13` can be done as per the example below:
+
+    $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_SYSTEM_NAME=spoke1 -e GATEWAY_NETWORK_0_HOST=10.11.12.13 -d kcollins/ignition:7.9.10
+
 ## Connect to your Ignition instance
 This image exposes the standard gateway ports (`8088`, `8043`), so if you utilize the `run` sequence above, you'll be able to connect to your instance against your host computer's port `8088`.  If you wish to utilize the SSL connection, simply publish `8043` as well.
 
