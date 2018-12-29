@@ -45,10 +45,10 @@ RUN rm /var/lib/ignition/data/gateway.xml && \
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
-    CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep RUNNING
+    CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep -q RUNNING
 
 # Setup Port Expose
-EXPOSE 8088 8043 8000
+EXPOSE 8088 8043 8060 8000
 
 # Launch Ignition
 USER ${IGNITION_INSTALL_USERNAME}
