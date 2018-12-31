@@ -52,7 +52,7 @@ You can now use this image to restore a gateway backup on first-start of the con
 
 Specify the full path to your gateway backup file in the `-v` bind-mount argument.  The container will start up, restore the backup, and then restart.
 
-## Gateway Network Provisioning
+## Container Customization
 
 _New with 7.9.10 Docker image as of 2018-12-29!_
 
@@ -65,10 +65,12 @@ Variable                           | Description                                
 `GATEWAY_SYSTEM_NAME`              | Set this to a string to drive the Ignition Gateway Name.
 `GATEWAY_USESSL`                   | Set to `true` to enforce connections to the gateway use SSL on port `8043`.
 `GATEWAY_NETWORK_AUTOACCEPT_DELAY` | Number of _seconds_ to auto accept new certificates for incoming gateway network connections.
-
-_Table 2 - Gateway Network Provisioning_
+`GATEWAY_INIT_MEMORY`              | Initial Java Heap Size
+`GATEWAY_MAX_MEMORY`               | Maximum Java Heap Size
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
+
+_Table 2 - Gateway Network Provisioning_
 
 Variable                       | Default | Description                                                          |
 ------------------------------ | ------- | -------------------------------------------------------------------- |
