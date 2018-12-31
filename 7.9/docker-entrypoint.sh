@@ -2,8 +2,13 @@
 set -eo pipefail
 shopt -s nullglob
 
+# Local initialization
 INIT_FILE=/var/lib/ignition/data/init.properties
+CMD=( "$@" )
+WRAPPER_OPTIONS=( )
+JAVA_OPTIONS=( )
 
+# Init Properties Helper Functions
 add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
@@ -13,6 +18,7 @@ add_to_init () {
     fi
 }
 
+# Gateway Network Init Properties Helper Function
 add_gw_to_init () {
     # This function will add any other defined variables (via add_to_init) for a gateway
     # network connection definition.
@@ -42,6 +48,43 @@ add_gw_to_init () {
     add_to_init gateway.network.${1}.Port ${port}
 }
 
+# Examine memory constraints and apply to Java arguments
+if [ ! -z ${GATEWAY_INIT_MEMORY:-} ]; then
+    if [ ${GATEWAY_INIT_MEMORY} -ge 256 2> /dev/null ]; then
+        WRAPPER_OPTIONS+=(
+            "wrapper.java.initmemory=${GATEWAY_INIT_MEMORY}"
+            )
+    else
+        echo >&2 "Invalid minimum memory specification, must be integer in MB: ${GATEWAY_INIT_MEMORY}"
+        exit 1
+    fi    
+fi
+
+if [ ! -z ${GATEWAY_MAX_MEMORY:-} ]; then
+    if [ ${GATEWAY_MAX_MEMORY} -ge 512 2> /dev/null ]; then
+        WRAPPER_OPTIONS+=(
+            "wrapper.java.maxmemory=${GATEWAY_MAX_MEMORY}"
+        )
+    else
+        echo >&2 "Invalid max memory specification, must be integer in MB: ${GATEWAY_MAX_MEMORY}"
+        exit 1
+    fi
+fi
+
+if [ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]; then
+    echo >&2 "Invalid memory specification, min (${GATEWAY_MIN_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
+    exit 1
+fi
+
+# Combine CMD array with wrapper and explicit java options
+if [ ! -z ${JAVA_OPTIONS:-} ]; then
+    JAVA_OPTIONS=( "--" "${JAVA_OPTIONS[@]}" )
+fi
+CMD+=(
+    "${WRAPPER_OPTIONS[@]}"
+    "${JAVA_OPTIONS[@]}"
+)
+
 # Check for no Docker Init Complete file
 if [ ! -f "/var/lib/ignition/data/.docker-init-complete" ]; then
     # Mark Initialization Complete
@@ -69,7 +112,7 @@ if [ ! -f "/var/lib/ignition/data/.docker-init-complete" ]; then
     # Attempt Gateway Restore if file exists
     if [ -f "/restore.gwbk" ]; then
         # Initialize Startup Gateway before Attempting Restore
-        "$@" &
+        "${CMD[@]}" &
         pid="$!"
 
         # Wait up to 60 seconds (default) for Startup Gateway to come online
@@ -99,4 +142,4 @@ if [ ! -f "/var/lib/ignition/data/.docker-init-complete" ]; then
     fi
 fi
 
-exec "$@"
+exec "${CMD[@]}"
