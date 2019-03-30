@@ -6,17 +6,16 @@ env:
     - IMAGE_NAME=kcollins/ignition
   matrix:
     - PRERELEASE=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.0-beta
-    - PRERELEASE=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.0-beta EDITION=edge
-
+    
 before_script:
   - cd "$MAJOR_VERSION"
-  # Specify image as "kcollins/ignition:7.9.7" or "kcollins/ignition:7.9.7-edge" if edition is set to edge
-  - FULL_IMAGE="$IMAGE_NAME:$FULL_VERSION${EDITION:+-$EDITION}"
-  - MAJOR_IMAGE="$IMAGE_NAME:$MAJOR_VERSION${EDITION:+-$EDITION}"
-  - LATEST_IMAGE="$IMAGE_NAME:latest${EDITION:+-$EDITION}"
+  # Specify image as "kcollins/ignition:7.9.7"
+  - FULL_IMAGE="$IMAGE_NAME:$FULL_VERSION
+  - MAJOR_IMAGE="$IMAGE_NAME:$MAJOR_VERSION
+  - LATEST_IMAGE="$IMAGE_NAME:latest
 
 script:
-  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} -t "$FULL_IMAGE" .
+  - travis_retry docker build -t "$FULL_IMAGE" .
 
 after_script:
   - docker images

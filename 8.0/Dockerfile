@@ -4,11 +4,10 @@ LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y curl gettext procps wget
 
-# Select Ignition Version and Edition
+# Select Ignition Version
 ARG IGNITION_VERSION="8.0.0"
 ARG IGNITION_DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/builds/nightly/8.0.0-beta/zip-installers/Ignition-8.0.0-beta-linux-x64-installer.run"
 ARG IGNITION_DOWNLOAD_MD5=""
-ARG IGNITION_EDITION=full
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
@@ -28,7 +27,7 @@ RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${I
     groupadd -r ${IGNITION_INSTALL_GROUPNAME} && \
     useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERNAME} && \
     chown ${IGNITION_INSTALL_USERNAME}:${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERHOME} && \
-    ./${INSTALLER_NAME} --username ${IGNITION_INSTALL_USERNAME} --unattendedmodeui none --mode unattended --edition ${IGNITION_EDITION} --prefix ${IGNITION_INSTALL_LOCATION} && \
+    ./${INSTALLER_NAME} --username ${IGNITION_INSTALL_USERNAME} --unattendedmodeui none --mode unattended --prefix ${IGNITION_INSTALL_LOCATION} && \
     rm ${INSTALLER_NAME}
 
 # Clean-up symbolic links back to /etc/ignition so we can ensure preservation of instance configuration in /var/lib/ignition
