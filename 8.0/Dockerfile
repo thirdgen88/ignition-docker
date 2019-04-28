@@ -38,19 +38,16 @@ RUN apt-get update && apt-get install -y curl gettext procps pwgen
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
-ENV IGNITION_INSTALL_USERNAME="ignition"
 ENV IGNITION_INSTALL_USERHOME="/home/ignition"
-ENV IGNITION_INSTALL_GROUPNAME="ignition"
-
-# Copy Ignition Installation from Build Image
-COPY --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
 
 # Setup dedicated user, map file permissions, and set execution flags
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
-    groupadd -r ${IGNITION_INSTALL_GROUPNAME} && \
-    useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERNAME} && \
-    chown ${IGNITION_INSTALL_USERNAME}:${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_USERHOME} && \
-    chown -R ${IGNITION_INSTALL_USERNAME}.${IGNITION_INSTALL_GROUPNAME} ${IGNITION_INSTALL_LOCATION}
+    groupadd -r ignition && \
+    useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ignition ignition && \
+    chown ignition:ignition ${IGNITION_INSTALL_USERHOME}
+
+# Copy Ignition Installation from Build Image
+COPY --chown=ignition:ignition --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -60,7 +57,7 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
 EXPOSE 8088 8043 8000
 
 # Launch Ignition
-USER ${IGNITION_INSTALL_USERNAME}
+USER ignition
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 
 # Setup Entrypoint script
