@@ -25,6 +25,7 @@ RUN mkdir ignition && \
 
 # Extract embedded Java
 RUN tar -C ignition/lib/runtime -z -x -f ignition/lib/runtime/jre-nix.tar.gz && \
+    cp ignition/lib/runtime/version ignition/lib/runtime/jre-nix/ && \
     rm ignition/lib/runtime/jre-*.tar.gz && \
     rm ignition/lib/runtime/jre-*.zip
 
@@ -33,7 +34,7 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps
+RUN apt-get update && apt-get install -y curl gettext procps pwgen
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
