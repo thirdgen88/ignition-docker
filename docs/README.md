@@ -1,6 +1,6 @@
 # Supported tags and respective `Dockerfile` links
 
-* [`8.0.0-beta`, `8.0.0-beta-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/8.0/8.0/Dockerfile)
+* [`8.0.0`, `8.0.0-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`7.9.10`, `7.9`, `latest` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.10-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
@@ -55,6 +55,7 @@ Specify the full path to your gateway backup file in the `-v` bind-mount argumen
 ## Container Customization
 
 _New with 7.9.10 Docker image as of 2018-12-29!_
+_New 8.0.x options added on 2019-04-27!_
 
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
 
@@ -67,6 +68,11 @@ Variable                           | Description                                
 `GATEWAY_NETWORK_AUTOACCEPT_DELAY` | Number of _seconds_ to auto accept new certificates for incoming gateway network connections.
 `GATEWAY_INIT_MEMORY`              | Initial Java Heap Size
 `GATEWAY_MAX_MEMORY`               | Maximum Java Heap Size
+`GATEWAY_ADMIN_USERNAME`           | Gateway Admin Username (defaults to `admin`) _only for > 8.0.0_
+`GATEWAY_ADMIN_PASSWORD`           | Gateway Admin Password _only for > 8.0.0_
+`GATEWAY_RANDOM_ADMIN_PASSWORD`    | Generate random Gateway Admin Password _only for > 8.0.0_
+`GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
+`GATEWAY_HTTPs_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -123,14 +129,6 @@ Getting a volume created is as simple as using a `-v` flag when starting your co
         -d kcollins/ignition:tag
 
 This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
-
-# Information on the Ignition 8.0 Beta
-
-The Ignition 8.0 Beta is currently being generated based on nightly builds from Inductive Automation.  These builds are intended for testing only.  If you are interested in providing feedback on the Ignition 8.0 beta, please sign up for [Beta Access](https://inductiveautomation.com/login?next=https://account.inductiveautomation.com/request-beta-access) with Inductive Automation and join the dedicated forum.
-
-Ignition 8.0 now comes with a Java JRE embedded within.  At this time, the embedded JRE (`11.0.1+13-LTS` at the time of writing) is being used for the gateway process; therefore, a base [debian](https://hub.docker.com/_/debian/) slim image is being used to help keep the docker image size down.
-
-Feedback on the Ignition 8.0 docker image is also welcome at the GitHub issues link at the top of the page.
 
 # License
 

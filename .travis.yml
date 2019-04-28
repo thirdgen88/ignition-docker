@@ -5,10 +5,12 @@ env:
   global:
     - IMAGE_NAME=kcollins/ignition
   matrix:
-    - MAJOR_VERSION=7.7 FULL_VERSION=7.7.9
-    - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5
-    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.10
-    - LATEST=1 MAJOR_VERSION=7.9 FULL_VERSION=7.9.10 EDITION=edge
+    - MAJOR_VERSION=7.7 FULL_VERSION=7.7.9 DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/build7.7.9/2018060503/ignition-7.7.9-linux-x64-installer.run DOWNLOAD_MD5=a7a0736dc9ee2e1f25b8ab72d389f9af
+    - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5 DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.8.5/20161208-1312/Ignition-7.8.5-linux-x64-installer.run DOWNLOAD_MD5=dffb12fb1df320fb569ca38bcd71b347
+    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.10 DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.10/20181128-1303/zip-installers/Ignition-7.9.10-linux-x64-installer.run DOWNLOAD_MD5=414dae5fb8ccfa94e74cd11730c45aeb
+    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.10 EDITION=edge DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.10/20181128-1303/zip-installers/Ignition-7.9.10-linux-x64-installer.run DOWNLOAD_MD5=414dae5fb8ccfa94e74cd11730c45aeb
+    - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.0 DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build8.0.0/20190407-1858/zip-installers/Ignition-linux-64-8.0.0.zip DOWNLOAD_SHA256=6e793f00124a13c00f37ea717ababae95a4e9f8702c1639040021862d08a625e
+    - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.0 EDITION=edge DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build8.0.0/20190407-1858/zip-installers/Ignition-Edge-linux-64-8.0.0.zip DOWNLOAD_SHA256=bce3b8c62692db9cb7a1c9af7beaf9ee24a9bfe7e76798f1af424ee1609a3c6e
 
 before_script:
   - cd "$MAJOR_VERSION"
@@ -18,7 +20,7 @@ before_script:
   - LATEST_IMAGE="$IMAGE_NAME:latest${EDITION:+-$EDITION}"
 
 script:
-  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} -t "$FULL_IMAGE" .
+  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} ${DOWNLOAD_URL:+--build-arg IGNITION_DOWNLOAD_URL=${DOWNLOAD_URL}} ${DOWNLOAD_MD5:+--build-arg IGNITION_DOWNLOAD_MD5=${DOWNLOAD_MD5}} ${DOWNLOAD_SHA256:+--build-arg IGNITION_DOWNLOAD_SHA256=${DOWNLOAD_SHA256}} -t "$FULL_IMAGE" .
 
 after_script:
   - docker images
