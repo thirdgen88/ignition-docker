@@ -60,10 +60,12 @@ EXPOSE 8088 8043 8000
 USER ignition
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 
-# Setup Entrypoint script
+# Copy in Entrypoint and helper scripts
 COPY docker-entrypoint.sh /usr/local/bin/
-ENTRYPOINT [ "docker-entrypoint.sh" ]
+COPY accept-gwnetwork.sh /usr/local/bin/
 
+# Prepare Execution Settings
+ENTRYPOINT [ "docker-entrypoint.sh" ]
 CMD [ "./ignition-gateway" \
     , "data/ignition.conf" \
     , "wrapper.syslog.ident=Ignition Gateway" \

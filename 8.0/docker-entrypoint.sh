@@ -3,7 +3,7 @@ set -eo pipefail
 shopt -s nullglob
 
 # Local initialization
-INIT_FILE=/var/lib/ignition/data/init.properties
+INIT_FILE=/usr/local/share/ignition/data/init.properties
 CMD=( "$@" )
 WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
