@@ -1,0 +1,24 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+current_dir = File.dirname(File.expand_path(__FILE__))
+
+Vagrant.configure("2") do |config|
+
+    config.vm.define "ignition" do |ignition|
+    end
+
+    config.vm.network "forwarded_port", guest: 8088, host: 8088, host_ip: "127.0.0.1"
+    config.vm.network "forwarded_port", guest: 8043, host: 8043, host_ip: "127.0.0.1"
+
+    config.vm.provider "docker" do |d|
+#        d.volumes = [ "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
+        d.build_dir = "."
+        d.env = {
+            "IGNITION_ADMIN_USERNAME" => "admin",
+            "IGNITION_RANDOM_ADMIN_PASSWORD" => "1",
+            "IGNITION_HTTP_PORT" => "8088",
+            "IGNITION_HTTPS_PORT" => "8043"
+        }
+    end
+end
