@@ -23,11 +23,21 @@ RUN mkdir ignition && \
     unzip -q ${INSTALLER_NAME} -d ignition/ && \
     chmod +x ignition/gwcmd.sh ignition/ignition-gateway ignition/ignition.sh
 
+# Change to Ignition folder
+WORKDIR ${INSTALLER_PATH}/ignition
+
+# Stage data and user-lib in var folder
+RUN mkdir -p /var/lib/ignition && \
+    mv data /var/lib/ignition/ && \
+    mv user-lib /var/lib/ignition/ && \
+    ln -s /var/lib/ignition/data data && \
+    ln -s /var/lib/ignition/user-lib user-lib
+
 # Extract embedded Java
-RUN tar -C ignition/lib/runtime -z -x -f ignition/lib/runtime/jre-nix.tar.gz && \
-    cp ignition/lib/runtime/version ignition/lib/runtime/jre-nix/ && \
-    rm ignition/lib/runtime/jre-*.tar.gz && \
-    rm ignition/lib/runtime/jre-*.zip
+RUN tar -C lib/runtime -z -x -f lib/runtime/jre-nix.tar.gz && \
+    cp lib/runtime/version lib/runtime/jre-nix/ && \
+    rm lib/runtime/jre-*.tar.gz && \
+    rm lib/runtime/jre-*.zip
 
 # RUNTIME IMAGE
 FROM debian:stretch-slim
@@ -48,6 +58,7 @@ RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
 
 # Copy Ignition Installation from Build Image
 COPY --chown=ignition:ignition --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
+COPY --chown=ignition:ignition --from=0 /var/lib/ignition /var/lib/ignition
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
