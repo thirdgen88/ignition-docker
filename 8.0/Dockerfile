@@ -35,9 +35,7 @@ RUN mkdir -p /var/lib/ignition && \
 
 # Extract embedded Java
 RUN tar -C lib/runtime -z -x -f lib/runtime/jre-nix.tar.gz && \
-    cp lib/runtime/version lib/runtime/jre-nix/ && \
-    rm lib/runtime/jre-*.tar.gz && \
-    rm lib/runtime/jre-*.zip
+    cp lib/runtime/version lib/runtime/jre-nix/
 
 # RUNTIME IMAGE
 FROM debian:stretch-slim
