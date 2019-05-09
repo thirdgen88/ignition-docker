@@ -35,14 +35,14 @@ The normal Ignition installation process is extremely quick and painless.  This 
 ## Start an `ignition` gateway instance
 You can start an instance of Ignition in its own container as below:
 
-    $ docker run -p 8088:8088 --name my-ignition -d kcollins/ignition:tag
+    $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_ADMIN_PASSWORD=password -d kcollins/ignition:tag
 
-... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for available tags.
+... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for available tags.  _NOTE: GATEWAY_ADMIN_PASSWORD is a new field for Ignition 8.0 and the gateway commissioning process.  See the table below in container customization for more information_
 
 ## Start an `ignition-edge` gateway instance
 If you want to run the Ignition Edge variant, simply use the `-edge` suffix on the desired tag:
 
-    $ docker run -p 8088:8088 --name my-ignition-edge -d kcollins/ignition:tag-edge
+    $ docker run -p 8088:8088 --name my-ignition-edge -e GATEWAY_ADMIN_PASSWORD=password -d kcollins/ignition:tag-edge
 
 The `tag` would be replaced with the version, so your resultant image name might be something like `kcollins/ignition:7.9.7-edge`.
 
@@ -53,6 +53,10 @@ You can now use this image to restore a gateway backup on first-start of the con
 
 Specify the full path to your gateway backup file in the `-v` bind-mount argument.  The container will start up, restore the backup, and then restart.
 
+## Using `docker-compose`
+
+For examples and guidance on using the Ignition Docker Image alongside other services with Docker Compose, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo on GitHub.
+
 ## Container Customization
 
 _New with 7.9.10 Docker image as of 2018-12-29!_
@@ -61,6 +65,8 @@ _New 8.0.x options added on 2019-04-27!_
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
 
 _Table 1 - General Configurability_
+
+For Ignition 8.x, you _must_ specify either `GATEWAY_ADMIN_PASSWORD` or `GATEWAY_RANDOM_ADMIN_PASSWORD` on container launch.  This will only affect the initial credentials for the gateway.  When restoring from a backup, the admin credentials specified through these environment variables will be set on initial restore, overriding the existing credentials from the gateway backup file.
 
 Variable                           | Description                                                            |
 ---------------------------------- | ---------------------------------------------------------------------- |
@@ -71,9 +77,9 @@ Variable                           | Description                                
 `GATEWAY_MAX_MEMORY`               | Maximum Java Heap Size
 `GATEWAY_ADMIN_USERNAME`           | Gateway Admin Username (defaults to `admin`) _only for > 8.0.0_
 `GATEWAY_ADMIN_PASSWORD`           | Gateway Admin Password _only for > 8.0.0_
-`GATEWAY_RANDOM_ADMIN_PASSWORD`    | Generate random Gateway Admin Password _only for > 8.0.0_
+`GATEWAY_RANDOM_ADMIN_PASSWORD`    | Set to `1` to generate random Gateway Admin Password _only for > 8.0.0_
 `GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
-`GATEWAY_HTTPs_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
+`GATEWAY_HTTPS_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -114,6 +120,7 @@ If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignit
 
     $ docker run --name my-ignition \
         -v /path/to/custom/ignition.conf:/var/lib/ignition/data/ignition.conf \
+        -e GATEWAY_ADMIN_PASSWORD=password \
         -d kcollins/ignition:tag
 
 This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container). 
@@ -127,6 +134,7 @@ With no additional options for volume management specified to the container, all
 Getting a volume created is as simple as using a `-v` flag when starting your container:
 
     $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition \
+        -e GATEWAY_ADMIN_PASSWORD=password \
         -d kcollins/ignition:tag
 
 This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
