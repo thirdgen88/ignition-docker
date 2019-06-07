@@ -5,9 +5,9 @@ LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 RUN apt-get update && apt-get install -y gettext procps
 
 # Select Ignition Version and Edition
-ARG IGNITION_VERSION="7.9.10"
-ARG IGNITION_DOWNLOAD_URL="https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.9.10/20181128-1303/zip-installers/Ignition-7.9.10-linux-x64-installer.run"
-ARG IGNITION_DOWNLOAD_MD5="414dae5fb8ccfa94e74cd11730c45aeb"
+ARG IGNITION_VERSION="7.9.11"
+ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.11/20190603-1300/zip-installers/Ignition-7.9.11-linux-x64-installer.run"
+ARG IGNITION_DOWNLOAD_MD5="a3da426232c5be189fe6042888637b88"
 ARG IGNITION_EDITION=full
 
 # Setup Install Targets
