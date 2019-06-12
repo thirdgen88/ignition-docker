@@ -130,7 +130,7 @@ if [ ! -f "/var/lib/ignition/data/.docker-init-complete" ]; then
 
         # The restore will prepare the backup to be restored on the next gateway startup
         echo 'Restoring Gateway Backup...'
-        ./gwcmd.sh --restore /restore.gwbk -y
+        printf '\n' | ./gwcmd.sh --restore /restore.gwbk -y
         
         # Stopping the gateway we started earlier so that the final startup will then take the backup
         # and put everything in place.
