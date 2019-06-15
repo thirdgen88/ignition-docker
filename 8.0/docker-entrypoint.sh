@@ -7,6 +7,7 @@ INIT_FILE=/usr/local/share/ignition/data/init.properties
 CMD=( "$@" )
 WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
+GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 
 # Init Properties Helper Functions
 add_to_init () {
@@ -135,16 +136,23 @@ stop_process() {
     fi
 }
 
-# usage register_modules
-#   ie: register_modules
+# usage register_modules RELINK_ENABLED
+#   ie: register_modules true
 register_modules() {
+    if [ ! -d "/modules" ]; then
+        return 0  # Silently exit if there is no /modules path
+    else
+        echo "Searching for third-party modules..."
+    fi
+
+    local RELINK_ENABLED="${1:-false}"
     local SQLITE3=( sqlite3 /var/lib/ignition/data/db/config.idb )
 
     # Remove Invalid Symbolic Links
     find /var/lib/ignition/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new modules and tie into db
-    for module in /modules/*; do
+    for module in /modules/*.modl; do
         local module_basename=$(basename "${module}")
         local module_sourcepath=${module}
         local module_destpath="/var/lib/ignition/user-lib/modules/${module_basename}"
@@ -156,10 +164,14 @@ register_modules() {
         fi
 
         if [ -e "${module_destpath}" ]; then
+            if [ "${RELINK_ENABLED}" != true ]; then
+                echo "Skipping existing module: ${module_basename}"
+                continue
+            fi
             echo "Relinking Module: ${module_basename}"
             rm "${module_destpath}"
         else
-            echo "Linking Module:" $(basename "${module}")
+            echo "Linking Module: ${module_basename}"
         fi
         ln -s "${module_sourcepath}" "${module_destpath}"
 
@@ -172,7 +184,7 @@ register_modules() {
         local next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" )
         local thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
         if [ "${thumbprint_already_exists}" != "1" ]; then
-            echo "  Inserting into CERTIFICATES table as CERTIFICATES_ID=${next_certificates_id}"
+            echo "  Accepting certificate as CERTIFICATES_ID=${next_certificates_id}"
             "${SQLITE3[@]}" "INSERT INTO CERTIFICATES (CERTIFICATES_ID, THUMBPRINT, SUBJECTNAME) VALUES (${next_certificates_id}, x'${thumbprint}', '${subject_name}'); UPDATE SEQUENCES SET val=${next_certificates_id} WHERE name='CERTIFICATES_SEQ'"
         else
             echo "  Thumbprint already found in CERTIFICATES table, skipping INSERT"
@@ -184,7 +196,7 @@ register_modules() {
         local module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' )
         local module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
         if [ "${module_id_already_exists}" != "1" ]; then
-            echo "  Inserting into EULAS table as EULAS_ID=${next_eulas_id}"
+            echo "  Accepting License on your behalf as EULAS_ID=${next_eulas_id}"
             "${SQLITE3[@]}" "INSERT INTO EULAS (EULAS_ID, MODULEID, CRC) VALUES (${next_eulas_id}, '${module_id}', ${license_crc32}); UPDATE SEQUENCES SET val=${next_eulas_id} WHERE name='EULAS_SEQ'"
         else
             echo "  License EULA already found in EULAS table, skipping INSERT"
@@ -303,7 +315,8 @@ if [ "$1" = './ignition-gateway' -a ! -f "/usr/local/share/ignition/data/.docker
             stop_process $pid
         fi
 
-        register_modules
+        # Link Additional Modules and prepare Ignition database
+        register_modules ${GATEWAY_MODULE_RELINK}
     fi
 
     if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" ]; then
@@ -312,7 +325,7 @@ if [ "$1" = './ignition-gateway' -a ! -f "/usr/local/share/ignition/data/.docker
 
     echo 'Starting Ignition Gateway...'
 else
-    register_modules
+    register_modules ${GATEWAY_MODULE_RELINK}
 fi
 
 exec "${CMD[@]}"
