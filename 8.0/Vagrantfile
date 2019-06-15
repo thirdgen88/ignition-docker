@@ -21,7 +21,7 @@ Vagrant.configure("2") do |config|
 
     config.vm.define "hub" do |hub|
         hub.vm.provider "docker" do |d|
-            # d.volumes = [ "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
+            d.volumes = [ "#{current_dir}/modules:/modules" ] # , "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
             d.build_dir = "."
             d.name = "hub"
             # d.compose = true
