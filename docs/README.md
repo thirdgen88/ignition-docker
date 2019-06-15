@@ -80,6 +80,7 @@ Variable                           | Description                                
 `GATEWAY_RANDOM_ADMIN_PASSWORD`    | Set to `1` to generate random Gateway Admin Password _only for > 8.0.0_
 `GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
 `GATEWAY_HTTPS_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
+`GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -133,11 +134,32 @@ With no additional options for volume management specified to the container, all
 
 Getting a volume created is as simple as using a `-v` flag when starting your container:
 
-    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition \
+    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition/data \
         -e GATEWAY_ADMIN_PASSWORD=password \
         -d kcollins/ignition:tag
 
-This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
+This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition/data` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
+
+_NOTE_: If you need to integrate third-party modules, see below.  If you need to integrate custom python files directly into `/var/lib/ignition/user-lib/pylib`, you can bind-mount a directory under there.  
+
+## How to integrate third party modules
+
+_New with latest 7.9.11 and 8.0.2 images as of 2019-06-15!_
+
+To add external or third-party modules to your gateway, place your modules in a folder on the Docker host, and bind-mount the folder into `/modules` within the container.  Modules will be linked from here into the active location at `/var/lib/ignition/user-lib/modules`.  Additionally, module certificates and licenses will be automatically accepted within the Gateway so that they start up automatically with no additional user intervention required.
+
+    $ ls /path/to/my/modules
+    
+    MQTT-Transmission-signed.modl
+    
+    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition/data \
+        -v /path/to/my/modules:/modules \
+        -e GATEWAY_ADMIN_PASSWORD=password \
+        -d kcollins/ignition:8.0.2
+
+Note that if you wish to remove a third-party module from your gateway, you will need to remove it from `/path/to/my/modules` after removing it through the Gateway Webpage.  If you do not remove the module from the bind-mount path, it will be relinked the next time the gateway restarts.
+
+If you wish to overwrite a built-in module with one from the bind-mount path, declare an environment variable `GATEWAY_MODULE_RELINK=true`.  This will cause the built-in module to be removed and the new one linked in its place prior to gateway startup.
 
 # License
 
@@ -146,6 +168,6 @@ For licensing information, consult the following links:
 * OpenJDK Licensing (base image for 7.9 and below) - http://openjdk.java.net/legal/gplv2+ce.html
 * Ignition License - https://inductiveautomation.com/ignition/license
 
-As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).
+As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).  The use of third-party modules requires reviewing the related licensing information, as module EULAs are accepted automatically on the user's behalf.
 
 As for any pre-built image usage, it is the image user's responsibility to ensure that any use of this image complies with any relevant licenses for all software contained within.
