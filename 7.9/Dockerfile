@@ -2,7 +2,7 @@ FROM openjdk:8-jre
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y gettext procps
+RUN apt-get update && apt-get install -y gettext procps unzip sqlite3
 
 # Select Ignition Version and Edition
 ARG IGNITION_VERSION="7.9.11"
