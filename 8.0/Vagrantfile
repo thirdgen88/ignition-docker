@@ -32,7 +32,7 @@ Vagrant.configure("2") do |config|
                 :GATEWAY_NETWORK_AUTOACCEPT_DELAY => 120,
                 :GATEWAY_INIT_MEMORY => 1024,
                 :GATEWAY_MAX_MEMORY => 2048,
-                :GATEWAY_MODULE_RELINK => "true"
+                :GATEWAY_MODULE_RELINK => "false"
             }
             d.create_args = [ 
                 "--network", "ignition-docker"

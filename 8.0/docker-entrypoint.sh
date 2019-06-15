@@ -184,7 +184,7 @@ register_modules() {
         local next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" )
         local thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
         if [ "${thumbprint_already_exists}" != "1" ]; then
-            echo "  Accepting certificate as CERTIFICATES_ID=${next_certificates_id}"
+            echo "  Accepting Certificate as CERTIFICATES_ID=${next_certificates_id}"
             "${SQLITE3[@]}" "INSERT INTO CERTIFICATES (CERTIFICATES_ID, THUMBPRINT, SUBJECTNAME) VALUES (${next_certificates_id}, x'${thumbprint}', '${subject_name}'); UPDATE SEQUENCES SET val=${next_certificates_id} WHERE name='CERTIFICATES_SEQ'"
         else
             echo "  Thumbprint already found in CERTIFICATES table, skipping INSERT"
@@ -245,87 +245,89 @@ if [ "$1" = './ignition-gateway' ]; then
 fi
 
 # Check for no Docker Init Complete file
-if [ "$1" = './ignition-gateway' -a ! -f "/usr/local/share/ignition/data/.docker-init-complete" ]; then
-    # Check Prerequisites
-    file_env 'GATEWAY_ADMIN_PASSWORD'
-    if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
-        echo >&2 'ERROR: Gateway is not initialized and no password option is specified '
-        echo >&2 '  You need to specify either GATEWAY_ADMIN_PASSWORD or GATEWAY_RANDOM_ADMIN_PASSWORD'
-        exit 1
-    fi
+if [ "$1" = './ignition-gateway' ]; then
+    if [ ! -f "/usr/local/share/ignition/data/.docker-init-complete" ]; then
+        # Check Prerequisites
+        file_env 'GATEWAY_ADMIN_PASSWORD'
+        if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
+            echo >&2 'ERROR: Gateway is not initialized and no password option is specified '
+            echo >&2 '  You need to specify either GATEWAY_ADMIN_PASSWORD or GATEWAY_RANDOM_ADMIN_PASSWORD'
+            exit 1
+        fi
 
-    # Mark Initialization Complete
-    touch /usr/local/share/ignition/data/.docker-init-complete
+        # Mark Initialization Complete
+        touch /usr/local/share/ignition/data/.docker-init-complete
 
-    # Provision the init.properties file if we've got the environment variables for it
-    rm -f /var/lib/ignition/data/init.properties
-    add_to_init "SystemName" GATEWAY_SYSTEM_NAME
-    add_to_init "UseSSL" GATEWAY_USESSL
+        # Provision the init.properties file if we've got the environment variables for it
+        rm -f /var/lib/ignition/data/init.properties
+        add_to_init "SystemName" GATEWAY_SYSTEM_NAME
+        add_to_init "UseSSL" GATEWAY_USESSL
 
-    # Look for declared HOST variables and add the other associated ones via add_gw_to_init
-    looper=GATEWAY_NETWORK_${i:=0}_HOST
-    while [ ! -z ${!looper:-} ]; do
-        # Add all available env parameters for this host to the init file
-        add_gw_to_init $i
-        # Index to the next HOST variable
-        looper=GATEWAY_NETWORK_$((++i))_HOST
-    done
+        # Look for declared HOST variables and add the other associated ones via add_gw_to_init
+        looper=GATEWAY_NETWORK_${i:=0}_HOST
+        while [ ! -z ${!looper:-} ]; do
+            # Add all available env parameters for this host to the init file
+            add_gw_to_init $i
+            # Index to the next HOST variable
+            looper=GATEWAY_NETWORK_$((++i))_HOST
+        done
 
-    # Enable Gateway Network Certificate Auto Accept if Declared
-    if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
-        accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
-    fi
+        # Enable Gateway Network Certificate Auto Accept if Declared
+        if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
+            accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+        fi
 
-    # Perform some staging for the rest of the provisioning process
-    if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
-        export GATEWAY_ADMIN_PASSWORD="$(pwgen -1 32)"
-    fi
-    if [ -f "/restore.gwbk" ]; then
-        export GATEWAY_RESTORE_REQUIRED="1"
-    else
-        export GATEWAY_RESTORE_REQUIRED="0"
-    fi
+        # Perform some staging for the rest of the provisioning process
+        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
+            export GATEWAY_ADMIN_PASSWORD="$(pwgen -1 32)"
+        fi
+        if [ -f "/restore.gwbk" ]; then
+            export GATEWAY_RESTORE_REQUIRED="1"
+        else
+            export GATEWAY_RESTORE_REQUIRED="0"
+        fi
 
-    # Initialize Startup Gateway before Attempting Restore
-    echo "Provisioning will be logged here: ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log"
-    "${CMD[@]}" > /usr/local/share/ignition/logs/provisioning.log 2>&1 &
-    pid="$!"
+        # Initialize Startup Gateway before Attempting Restore
+        echo "Provisioning will be logged here: ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log"
+        "${CMD[@]}" > /usr/local/share/ignition/logs/provisioning.log 2>&1 &
+        pid="$!"
 
-    echo "Waiting for commissioning servlet to become active..."
-    health_check "Commissioning Phase" 10
+        echo "Waiting for commissioning servlet to become active..."
+        health_check "Commissioning Phase" 10
 
-    echo "Performing commissioning actions..."
-    perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
-    echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
-    if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
-    echo "  GATEWAY_HTTP_PORT: ${GATEWAY_HTTP_PORT}"
-    echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
-    # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
+        echo "Performing commissioning actions..."
+        perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
+        echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
+        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
+        echo "  GATEWAY_HTTP_PORT: ${GATEWAY_HTTP_PORT}"
+        echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
+        # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
 
-    # Perform Module Registration and Restore of Gateway Backup
-    if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
-        sleep 5
-        echo "Commissioning completed, awaiting initial gateway startup prior to restore..."
-        health_check "Startup" ${IGNITION_STARTUP_DELAY:=60}
+        # Perform Module Registration and Restore of Gateway Backup
+        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
+            sleep 5
+            echo "Commissioning completed, awaiting initial gateway startup..."
+            health_check "Startup" ${IGNITION_STARTUP_DELAY:=60}
 
-        # Gateway Restore
-        if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
-            echo 'Restoring Gateway Backup...'
-            printf '\n' | ./gwcmd.sh --restore /restore.gwbk -y
+            # Gateway Restore
+            if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
+                echo 'Restoring Gateway Backup...'
+                printf '\n' | ./gwcmd.sh --restore /restore.gwbk -y
+                stop_process $pid
+            fi
+
+            # Link Additional Modules and prepare Ignition database
+            register_modules ${GATEWAY_MODULE_RELINK}
+        fi
+
+        if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" ]; then
             stop_process $pid
         fi
 
-        # Link Additional Modules and prepare Ignition database
+        echo 'Starting Ignition Gateway...'
+    else
         register_modules ${GATEWAY_MODULE_RELINK}
     fi
-
-    if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" ]; then
-        stop_process $pid
-    fi
-
-    echo 'Starting Ignition Gateway...'
-else
-    register_modules ${GATEWAY_MODULE_RELINK}
 fi
 
 exec "${CMD[@]}"
