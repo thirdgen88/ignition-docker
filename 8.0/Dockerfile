@@ -30,8 +30,10 @@ WORKDIR ${INSTALLER_PATH}/ignition
 RUN mkdir -p /var/lib/ignition && \
     mv data /var/lib/ignition/ && \
     mv user-lib /var/lib/ignition/ && \
+    mv temp /var/lib/ignition/data && \
     ln -s /var/lib/ignition/data data && \
-    ln -s /var/lib/ignition/user-lib user-lib
+    ln -s /var/lib/ignition/user-lib user-lib && \
+    ln -s /var/lib/ignition/data/temp temp
 
 # Extract embedded Java
 RUN tar -C lib/runtime -z -x -f lib/runtime/jre-nix.tar.gz && \
