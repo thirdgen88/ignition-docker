@@ -75,18 +75,26 @@ file_env() {
 #   ie: perform_commissioning http://localhost:8088/post-step 1
 perform_commissioning() {
     local url="$1"
+    local start_flag_value="$2"
+
+    echo "Performing commissioning actions..."
 
     # Register EULA Acceptance
     local license_accept_payload='{"id":"license","step":"eula","data":{"accept":true}}'
     curl -H "Content-Type: application/json" -d "${license_accept_payload}" ${url} > /dev/null 2>&1
 
     # Register Authentication Details
-    local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
-    local auth_salt=$(date +%s | sha256sum | head -c 8)
-    local auth_pwhash=$(echo -en ${GATEWAY_ADMIN_PASSWORD}${auth_salt} | sha256sum - | cut -c -64)
-    local auth_password="[${auth_salt}]${auth_pwhash}"
-    local auth_payload='{"id":"authentication","step":"authSetup","data":{"username":"'${auth_user}'","password":"'${auth_password}'"}}'
-    curl -H "Content-Type: application/json" -d "${auth_payload}" ${url} > /dev/null 2>&1
+    if [ ${upgrade_check_result} -eq -1 ]; then
+        local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
+        local auth_salt=$(date +%s | sha256sum | head -c 8)
+        local auth_pwhash=$(echo -en ${GATEWAY_ADMIN_PASSWORD}${auth_salt} | sha256sum - | cut -c -64)
+        local auth_password="[${auth_salt}]${auth_pwhash}"
+        local auth_payload='{"id":"authentication","step":"authSetup","data":{"username":"'${auth_user}'","password":"'${auth_password}'"}}'
+        curl -H "Content-Type: application/json" -d "${auth_payload}" ${url} > /dev/null 2>&1
+
+        echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
+        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
+    fi
 
     # Register Port Configuration
     local http_port="${GATEWAY_HTTP_PORT:=8088}"
@@ -94,9 +102,12 @@ perform_commissioning() {
     local use_ssl="${GATEWAY_USESSL:=false}"
     local port_payload='{"id":"connections","step":"connections","data":{"http":'${http_port}',"https":'${https_port}',"useSSL":'${use_ssl}'}}'
     curl -H "Content-Type: application/json" -d "${port_payload}" ${url} > /dev/null 2>&1
+    echo "  GATEWAY_HTTP_PORT: ${GATEWAY_HTTP_PORT}"
+    echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
+    # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
 
     # Finalize
-    if [ "$2" = "1" ]; then
+    if [ "${start_flag_value}" = "1" ]; then
         local start_flag="true"
     else
         local start_flag="false"
@@ -204,6 +215,109 @@ register_modules() {
     done
 }
 
+# usage: compare_versions IMAGE_VERSION VOLUME_VERSION
+#   ie: compare_versions "8.0.2" "7.9.11"
+# return values: -3 = unexpected version syntax
+#                -2 = image version is lower than volume version - invalid configuration!
+#                -1 = unknown comparison result
+#                 0 = image version is equal to volume version - no action required
+#                 1 = image version is greater than volume version or volume version is empty - upgrade required w/ commissioning
+#                 2 = image version is greater than volume version - upgrade required w/o commissioning
+compare_versions() {
+    local return_value=-1
+    local version_regex_pattern='^([0-9]*)\.([0-9]*)\.([0-9]*)$'
+    local image_version="$1"
+    local volume_version="$2"
+
+    # Extract Version Numbers
+    [[ $image_version =~ $version_regex_pattern ]]
+    local image_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    [[ $volume_version =~ $version_regex_pattern ]]
+    local volume_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    
+    if [ ${#image_version_arr[@]} -ne 3 ]; then
+        echo >&2 "Unexpected version syntax found in image (${image_version})"
+        return_value=-3
+    elif [ -z "${volume_version}" ]; then
+        # Special Case for detecting Ignition 8 images that might not have a volume version declared in the init file path
+        if [ -L "${IGNITION_INSTALL_LOCATION}/data" ]; then
+            return_value=2  # bypass commissioning
+        else
+            return_value=1
+        fi
+    elif [ ${#volume_version_arr[@]} -ne 3 ]; then
+        echo >&2 "Unexpected version syntax found in volume (${volume_version})"
+        return_value=-3
+    elif [ "${image_version}" = "${volume_version}" ]; then
+        return_value=0
+    else
+        # Implictly map the upgrade case (no commissioning required) ...
+        return_value=2  
+        
+        for (( i = 0; i < 3; i++ )); do
+            if [ ${volume_version_arr[$i]} -lt ${image_version_arr[$i]} ]; then
+                return_value=1  # Major Version Upgrade Detected, commissioning will be required
+                break
+            elif [ ${volume_version_arr[$i]} -gt ${image_version_arr[$i]} ]; then
+                echo >&2 "Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
+                return_value=-2  # ... and flag lower case (invalid) if detected
+                break
+            fi
+        done        
+    fi
+
+    if [ ${return_value} -eq -1 ]; then
+        echo >&2 "Unknown error encountered during version comparison, aborting..."
+    fi
+    echo ${return_value}
+}
+
+# usage: check_for_upgrade INIT_COMPLETE_FILEPATH
+#   ie: check_for_upgrade "/usr/local/share/ignition/data/.docker-init-complete"
+# return values: -2 = Upgrade Performed, Major Upgrade Detected
+#                -1 = Init file missing, fresh/new instance
+#                 0 = No upgrade needed
+#                 1 = Upgrade Performed, Minor Upgrade Detected
+check_for_upgrade() {
+    local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
+    local init_file_path="$1"
+    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2)
+
+    if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
+        # Fresh/new instance, case 1
+        echo "${image_version}" > "${init_file_path}"
+        upgrade_check_result=-1
+    else
+        if [ -f "${init_file_path}" ]; then
+            local volume_version=$(cat ${init_file_path})
+        fi
+        local version_check=$(compare_versions "${image_version}" "${volume_version}")
+
+        case ${version_check} in
+            0)
+                upgrade_check_result=0
+                ;;
+            1 | 2)
+                # Init file present, upgrade required
+                echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
+                java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
+                echo "Performing additional required volume updates"
+                mkdir -p "${IGNITION_INSTALL_LOCATION}/data/temp"
+                echo "${image_version}" > "${init_file_path}"
+                # Correlate the result of the version check
+                if [ ${version_check} -eq 1 ]; then 
+                    upgrade_check_result=-2
+                else
+                    upgrade_check_result=1
+                fi
+                ;;
+            *)
+                exit ${version_check}
+                ;;
+        esac
+    fi
+}
+
 # Collect additional arguments if we're running the gateway
 if [ "$1" = './ignition-gateway' ]; then
     # Examine memory constraints and apply to Java arguments
@@ -246,41 +360,46 @@ fi
 
 # Check for no Docker Init Complete file
 if [ "$1" = './ignition-gateway' ]; then
-    if [ ! -f "/usr/local/share/ignition/data/.docker-init-complete" ]; then
-        # Check Prerequisites
-        file_env 'GATEWAY_ADMIN_PASSWORD'
-        if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
-            echo >&2 'ERROR: Gateway is not initialized and no password option is specified '
-            echo >&2 '  You need to specify either GATEWAY_ADMIN_PASSWORD or GATEWAY_RANDOM_ADMIN_PASSWORD'
-            exit 1
-        fi
+    # Check for Upgrade and Mark Initialization File
+    check_for_upgrade "${IGNITION_INSTALL_LOCATION}/data/.docker-init-complete"
 
-        # Mark Initialization Complete
-        touch /usr/local/share/ignition/data/.docker-init-complete
+    if [ ${upgrade_check_result} -lt 0 ]; then
+        # Only perform Provisioning on Fresh/New Instance
+        if [ ${upgrade_check_result} -eq -1 ]; then
+            # Check Prerequisites
+            file_env 'GATEWAY_ADMIN_PASSWORD'
+            if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
+                echo >&2 'ERROR: Gateway is not initialized and no password option is specified '
+                echo >&2 '  You need to specify either GATEWAY_ADMIN_PASSWORD or GATEWAY_RANDOM_ADMIN_PASSWORD'
+                exit 1
+            fi
 
-        # Provision the init.properties file if we've got the environment variables for it
-        rm -f /var/lib/ignition/data/init.properties
-        add_to_init "SystemName" GATEWAY_SYSTEM_NAME
-        add_to_init "UseSSL" GATEWAY_USESSL
+            # Compute random password if env variable is defined
+            if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
+               export GATEWAY_ADMIN_PASSWORD="$(pwgen -1 32)"
+            fi
 
-        # Look for declared HOST variables and add the other associated ones via add_gw_to_init
-        looper=GATEWAY_NETWORK_${i:=0}_HOST
-        while [ ! -z ${!looper:-} ]; do
-            # Add all available env parameters for this host to the init file
-            add_gw_to_init $i
-            # Index to the next HOST variable
-            looper=GATEWAY_NETWORK_$((++i))_HOST
-        done
+            # Provision the init.properties file if we've got the environment variables for it
+            rm -f /var/lib/ignition/data/init.properties
+            add_to_init "SystemName" GATEWAY_SYSTEM_NAME
+            add_to_init "UseSSL" GATEWAY_USESSL
 
-        # Enable Gateway Network Certificate Auto Accept if Declared
-        if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
-            accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+            # Look for declared HOST variables and add the other associated ones via add_gw_to_init
+            looper=GATEWAY_NETWORK_${i:=0}_HOST
+            while [ ! -z ${!looper:-} ]; do
+                # Add all available env parameters for this host to the init file
+                add_gw_to_init $i
+                # Index to the next HOST variable
+                looper=GATEWAY_NETWORK_$((++i))_HOST
+            done
+
+            # Enable Gateway Network Certificate Auto Accept if Declared
+            if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
+                accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+            fi
         fi
 
         # Perform some staging for the rest of the provisioning process
-        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
-            export GATEWAY_ADMIN_PASSWORD="$(pwgen -1 32)"
-        fi
         if [ -f "/restore.gwbk" ]; then
             export GATEWAY_RESTORE_REQUIRED="1"
         else
@@ -295,13 +414,7 @@ if [ "$1" = './ignition-gateway' ]; then
         echo "Waiting for commissioning servlet to become active..."
         health_check "Commissioning Phase" 10
 
-        echo "Performing commissioning actions..."
         perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
-        echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
-        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
-        echo "  GATEWAY_HTTP_PORT: ${GATEWAY_HTTP_PORT}"
-        echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
-        # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
 
         # Perform Module Registration and Restore of Gateway Backup
         if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then

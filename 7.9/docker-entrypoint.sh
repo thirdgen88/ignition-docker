@@ -170,6 +170,104 @@ register_modules() {
     done
 }
 
+# usage: compare_versions IMAGE_VERSION VOLUME_VERSION
+#   ie: compare_versions "8.0.2" "7.9.11"
+# return values: -3 = unexpected version syntax
+#                -2 = image version is lower than volume version - invalid configuration!
+#                -1 = unknown comparison result
+#                 0 = image version is equal to volume version - no action required
+#                 1 = image version is greater than volume version or volume version is empty - upgrade required w/ commissioning
+#                 2 = image version is greater than volume version - upgrade required w/o commissioning
+compare_versions() {
+    local return_value=-1
+    local version_regex_pattern='^([0-9]*)\.([0-9]*)\.([0-9]*)$'
+    local image_version="$1"
+    local volume_version="$2"
+
+    # Extract Version Numbers
+    [[ $image_version =~ $version_regex_pattern ]]
+    local image_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    [[ $volume_version =~ $version_regex_pattern ]]
+    local volume_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    
+    if [ ${#image_version_arr[@]} -ne 3 ]; then
+        echo >&2 "Unexpected version syntax found in image (${image_version})"
+        return_value=-3
+    elif [ -z "${volume_version}" ]; then
+        return_value=1
+    elif [ ${#volume_version_arr[@]} -ne 3 ]; then
+        echo >&2 "Unexpected version syntax found in volume (${volume_version})"
+        return_value=-3
+    elif [ "${image_version}" = "${volume_version}" ]; then
+        return_value=0
+    else
+        # Implictly map the upgrade case (no commissioning required) ...
+        return_value=2  
+        
+        for (( i = 0; i < 3; i++ )); do
+            if [ ${volume_version_arr[$i]} -lt ${image_version_arr[$i]} ]; then
+                return_value=1  # Major Version Upgrade Detected, commissioning will be required
+                break
+            elif [ ${volume_version_arr[$i]} -gt ${image_version_arr[$i]} ]; then
+                echo >&2 "Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
+                return_value=-2  # ... and flag lower case (invalid) if detected
+                break
+            fi
+        done        
+    fi
+
+    if [ ${return_value} -eq -1 ]; then
+        echo >&2 "Unknown error encountered during version comparison, aborting..."
+    fi
+    echo ${return_value}
+}
+
+# usage: check_for_upgrade INIT_COMPLETE_FILEPATH
+#   ie: check_for_upgrade "/usr/local/share/ignition/data/.docker-init-complete"
+# return values: -2 = Upgrade Performed, Major Upgrade Detected
+#                -1 = Init file missing, fresh/new instance
+#                 0 = No upgrade needed
+#                 1 = Upgrade Performed, Minor Upgrade Detected
+check_for_upgrade() {
+    local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
+    local init_file_path="$1"
+    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2)
+
+    if [ ! -f "/var/lib/ignition/data/db/config.idb" ]; then
+        # Fresh/new instance, case 1
+        echo "${image_version}" > "${init_file_path}"
+        upgrade_check_result=-1
+    else
+        if [ -f "${init_file_path}" ]; then
+            local volume_version=$(cat ${init_file_path})
+        fi
+        local version_check=$(compare_versions "${image_version}" "${volume_version}")
+
+        case ${version_check} in
+            0)
+                upgrade_check_result=0
+                ;;
+            1 | 2)
+                # Init file present, upgrade required
+                echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
+                java -classpath "lib/core/common/common-${image_version}.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . /var/lib/ignition/data /var/log/ignition file=ignition.conf
+                echo "Performing additional required volume updates"
+                mkdir -p "${IGNITION_INSTALL_LOCATION}/data/temp"
+                echo "${image_version}" > "${init_file_path}"
+                # Correlate the result of the version check
+                if [ ${version_check} -eq 1 ]; then 
+                    upgrade_check_result=-2
+                else
+                    upgrade_check_result=1
+                fi
+                ;;
+            *)
+                exit ${version_check}
+                ;;
+        esac
+    fi
+}
+
 # Collect additional arguments if we're running the gateway
 if [ "$1" = './ignition-gateway' ]; then
     # Examine memory constraints and apply to Java arguments
@@ -212,27 +310,30 @@ fi
 
 # Check for no Docker Init Complete file
 if [ "$1" = './ignition-gateway' ]; then
-    if [ ! -f "/var/lib/ignition/data/.docker-init-complete" ]; then
-        # Mark Initialization Complete
-        touch /var/lib/ignition/data/.docker-init-complete
-        
-        # Provision the init.properties file if we've got the environment variables for it
-        rm -f /var/lib/ignition/data/init.properties
-        add_to_init "SystemName" GATEWAY_SYSTEM_NAME
-        add_to_init "UseSSL" GATEWAY_USESSL
+    # Check for Upgrade and Mark Initialization File
+    check_for_upgrade "/var/lib/ignition/data/.docker-init-complete"
 
-        # Look for declared HOST variables and add the other associated ones via add_gw_to_init
-        looper=GATEWAY_NETWORK_${i:=0}_HOST
-        while [ ! -z ${!looper:-} ]; do
-            # Add all available env parameters for this host to the init file
-            add_gw_to_init $i
-            # Index to the next HOST variable
-            looper=GATEWAY_NETWORK_$((++i))_HOST
-        done
+    if [ ${upgrade_check_result} -lt 0 ]; then
+        # Only perform Provisioning on Fresh/New Instance
+        if [ ${upgrade_check_result} -eq -1 ]; then        
+            # Provision the init.properties file if we've got the environment variables for it
+            rm -f /var/lib/ignition/data/init.properties
+            add_to_init "SystemName" GATEWAY_SYSTEM_NAME
+            add_to_init "UseSSL" GATEWAY_USESSL
 
-        # Enable Gateway Network Certificate Auto Accept if Declared
-        if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
-            accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+            # Look for declared HOST variables and add the other associated ones via add_gw_to_init
+            looper=GATEWAY_NETWORK_${i:=0}_HOST
+            while [ ! -z ${!looper:-} ]; do
+                # Add all available env parameters for this host to the init file
+                add_gw_to_init $i
+                # Index to the next HOST variable
+                looper=GATEWAY_NETWORK_$((++i))_HOST
+            done
+
+            # Enable Gateway Network Certificate Auto Accept if Declared
+            if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
+                accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+            fi
         fi
 
         # Determine if we are going to be restoring a gateway backup

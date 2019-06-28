@@ -30,7 +30,7 @@ For more information on Inductive Automation and the Ignition Platform, please v
 ![Ignition Logo Dark](https://inductiveautomation.com/static/images/logo_ignition_lg.png)
 
 # How to use this image
-The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  Over time, additional deployment scenarios (with database linkages and multi-gateway environments) will be detailed here, so stay tuned.
+The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  If you wish to explore other deployment scenarios, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo for multi-container Docker Compose examples.
 
 ## Start an `ignition` gateway instance
 You can start an instance of Ignition in its own container as below:
@@ -126,7 +126,7 @@ If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignit
 
 This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container). 
 
-# Caveats
+# Features
 
 ## How to persist Gateway data
 
@@ -160,6 +160,25 @@ To add external or third-party modules to your gateway, place your modules in a 
 Note that if you wish to remove a third-party module from your gateway, you will need to remove it from `/path/to/my/modules` after removing it through the Gateway Webpage.  If you do not remove the module from the bind-mount path, it will be relinked the next time the gateway restarts.
 
 If you wish to overwrite a built-in module with one from the bind-mount path, declare an environment variable `GATEWAY_MODULE_RELINK=true`.  This will cause the built-in module to be removed and the new one linked in its place prior to gateway startup.
+
+## Upgrading a volume-persisted Ignition Container
+
+_New with latest 7.9.11 and 8.0.2 images as of 2019-06-28!_
+
+Upgrading Ignition versions is now supported!  If you have your container bound with a named volume to `/var/lib/ignition/data` (as described above), upgrading to a newer container is now just a matter of stopping/removing the existing container, and starting a new container against a newer image.  Just make sure to connect the same volume to the new container and the entrypoint script will handle running the upgrader and conduct any additional provisioning actions automatically.
+
+Note:  If you attempt to start a container bound to a newer-version image, an error will be produced and the container will not start.  Upgrades are supported, and downgrades are disallowed (as expected).
+
+## How to set Gateway Timezone
+
+To set the gateway timezone, simply add a `TZ` environment variable to the container:
+
+    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition/data \
+        -e GATEWAY_ADMIN_PASSWORD=password \
+        -e TZ="America/Chicago"
+        -d kcollins/ignition:latest
+
+Once the gateway starts, you should be able to see the designated local time in the _Environment_ section of the Gateway Status Overview Webpage.
 
 # License
 

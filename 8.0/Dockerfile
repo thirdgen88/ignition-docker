@@ -26,14 +26,16 @@ RUN mkdir ignition && \
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
 
-# Stage data and user-lib in var folder
+# Stage data, temp, logs and user-lib in var folders
 RUN mkdir -p /var/lib/ignition && \
     mv data /var/lib/ignition/ && \
     mv user-lib /var/lib/ignition/ && \
     mv temp /var/lib/ignition/data && \
+    mv logs /var/log/ignition && \
     ln -s /var/lib/ignition/data data && \
     ln -s /var/lib/ignition/user-lib user-lib && \
-    ln -s /var/lib/ignition/data/temp temp
+    ln -s /var/lib/ignition/data/temp temp && \
+    ln -s /var/log/ignition logs
 
 # Extract embedded Java
 RUN tar -C lib/runtime -z -x -f lib/runtime/jre-nix.tar.gz && \
@@ -59,6 +61,7 @@ RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
 # Copy Ignition Installation from Build Image
 COPY --chown=ignition:ignition --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
 COPY --chown=ignition:ignition --from=0 /var/lib/ignition /var/lib/ignition
+COPY --chown=ignition:ignition --from=0 /var/log/ignition /var/log/ignition
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -70,6 +73,9 @@ EXPOSE 8088 8043 8000
 # Launch Ignition
 USER ignition
 WORKDIR ${IGNITION_INSTALL_LOCATION}
+
+# Update path to include embedded java install location
+ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre-nix/bin:${PATH}"
 
 # Copy in Entrypoint and helper scripts
 COPY docker-entrypoint.sh /usr/local/bin/
