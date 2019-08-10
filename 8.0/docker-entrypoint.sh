@@ -7,6 +7,7 @@ INIT_FILE=/usr/local/share/ignition/data/init.properties
 CMD=( "$@" )
 WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
+GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 
 # Init Properties Helper Functions
@@ -406,9 +407,20 @@ if [ "$1" = './ignition-gateway' ]; then
             export GATEWAY_RESTORE_REQUIRED="0"
         fi
 
+        # Accumulate Gateway Command Utility Options
+        if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
+            GWCMD_OPTIONS+=( "--disabled" )
+        fi
+        if [ ! -z "${GATEWAY_SYSTEM_NAME:-}" ]; then
+            GWCMD_OPTIONS+=( "--name" $(echo "${GATEWAY_SYSTEM_NAME}" | sed 's/ //g') )
+        fi
+        if [ ${#GWCMD_OPTIONS[@]} -gt 0 ]; then
+            echo "Gateway Restore Options: ${GWCMD_OPTIONS[@]}"
+        fi
+
         # Initialize Startup Gateway before Attempting Restore
         echo "Provisioning will be logged here: ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log"
-        "${CMD[@]}" > /usr/local/share/ignition/logs/provisioning.log 2>&1 &
+        "${CMD[@]}" > ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log 2>&1 &
         pid="$!"
 
         echo "Waiting for commissioning servlet to become active..."
@@ -425,7 +437,7 @@ if [ "$1" = './ignition-gateway' ]; then
             # Gateway Restore
             if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
                 echo 'Restoring Gateway Backup...'
-                printf '\n' | ./gwcmd.sh --restore /restore.gwbk -y
+                ./gwcmd.sh --restore /restore.gwbk ${GWCMD_OPTIONS[@]} -y
                 stop_process $pid
             fi
 
