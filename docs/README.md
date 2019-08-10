@@ -1,16 +1,20 @@
-# Supported tags and respective `Dockerfile` links
+---
+title: kcollins/ignition Docker Container
+---
 
-* [`8.0.2`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
-* [`8.0.2-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+## Supported tags and respective `Dockerfile` links
+
+* [`8.0.3`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.3-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`7.9.12`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.12-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
 * [`7.7.10`, `7.7` (7.7/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.7/Dockerfile)
 
-# Quick Reference
+## Quick Reference
 
 * **Where to file issues**:
-https://github.com/thirdgen88/ignition-docker/issues
+<https://github.com/thirdgen88/ignition-docker/issues>
 
 * **Maintained by**:
 Kevin Collins (independent Ignition enthusiast)
@@ -19,9 +23,11 @@ Kevin Collins (independent Ignition enthusiast)
 `amd64`
 
 * **Source of this description:**
-https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
+<https://github.com/thirdgen88/ignition-docker/tree/master/docs> ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
-# What is Ignition?
+<!-- markdownlint-disable MD026 -->
+## What is Ignition?
+<!-- markdownlint-enable MD037 -->
 
 Ignition is a SCADA software platform made by [Inductive Automation](http://inductiveautomation.com).  This repository, intended for development use on the Ignition platform, is not sponsored by Inductive Automation, please visit their website for more information.
 
@@ -29,10 +35,12 @@ For more information on Inductive Automation and the Ignition Platform, please v
 
 ![Ignition Logo Dark](https://inductiveautomation.com/static/images/logo_ignition_lg.png)
 
-# How to use this image
+## How to use this image
+
 The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  If you wish to explore other deployment scenarios, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo for multi-container Docker Compose examples.
 
 ## Start an `ignition` gateway instance
+
 You can start an instance of Ignition in its own container as below:
 
     $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_ADMIN_PASSWORD=password -d kcollins/ignition:tag
@@ -40,6 +48,7 @@ You can start an instance of Ignition in its own container as below:
 ... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for available tags.  _NOTE: GATEWAY_ADMIN_PASSWORD is a new field for Ignition 8.0 and the gateway commissioning process.  See the table below in container customization for more information_
 
 ## Start an `ignition-edge` gateway instance
+
 If you want to run the Ignition Edge variant, simply use the `-edge` suffix on the desired tag:
 
     $ docker run -p 8088:8088 --name my-ignition-edge -e GATEWAY_ADMIN_PASSWORD=password -d kcollins/ignition:tag-edge
@@ -47,6 +56,7 @@ If you want to run the Ignition Edge variant, simply use the `-edge` suffix on t
 The `tag` would be replaced with the version, so your resultant image name might be something like `kcollins/ignition:7.9.7-edge`.
 
 ## Restore an existing gateway backup on container startup
+
 You can now use this image to restore a gateway backup on first-start of the container.  Bind-mount the gateway backup to `/restore.gwbk` and the image will take care of the rest:
 
     $ docker run -p 8088:8088 --name my-ignition -v /path/to/gateway.gwbk:/restore.gwbk -d kcollins/ignition:tag
@@ -64,7 +74,9 @@ _New 8.0.x options added on 2019-04-27!_
 
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
 
+<!-- markdownlint-disable MD036 -->
 _Table 1 - General Configurability_
+<!-- markdownlint-enable MD036 -->
 
 For Ignition 8.x, you _must_ specify either `GATEWAY_ADMIN_PASSWORD` or `GATEWAY_RANDOM_ADMIN_PASSWORD` on container launch.  This will only affect the initial credentials for the gateway.  When restoring from a backup, the admin credentials specified through these environment variables will be set on initial restore, overriding the existing credentials from the gateway backup file.
 
@@ -84,7 +96,9 @@ Variable                           | Description                                
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
+<!-- markdownlint-disable MD036 -->
 _Table 2 - Gateway Network Provisioning_
+<!-- markdownlint-enable MD036 -->
 
 Variable                       | Default | Description                                                          |
 ------------------------------ | ------- | -------------------------------------------------------------------- |
@@ -101,6 +115,7 @@ Creating an Ignition Gateway with the gateway name `spoke1` and a single outboun
     $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_SYSTEM_NAME=spoke1 -e GATEWAY_NETWORK_0_HOST=10.11.12.13 -d kcollins/ignition:7.9.10
 
 ## Connect to your Ignition instance
+
 This image exposes the standard gateway ports (`8088`, `8043`), so if you utilize the `run` sequence above, you'll be able to connect to your instance against your host computer's port `8088`.  If you wish to utilize the SSL connection, simply publish `8043` as well.
 
 ## Container shell access and viewing Ignition Gateway logs
@@ -108,7 +123,7 @@ This image exposes the standard gateway ports (`8088`, `8043`), so if you utiliz
 The `docker exec` command allows you to run commands inside of a Docker container.  The following command will launch a _bash_ shell inside your `ignition` container:
 
     $ docker exec -it my-ignition bash
-    
+
 The Ignition Gateway Wrapper log is available through the Docker container's log:
 
     $ docker logs my-ignition
@@ -124,9 +139,9 @@ If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignit
         -e GATEWAY_ADMIN_PASSWORD=password \
         -d kcollins/ignition:tag
 
-This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container). 
+This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container).
 
-# Features
+## Features
 
 ## How to persist Gateway data
 
@@ -180,12 +195,12 @@ To set the gateway timezone, simply add a `TZ` environment variable to the conta
 
 Once the gateway starts, you should be able to see the designated local time in the _Environment_ section of the Gateway Status Overview Webpage.
 
-# License
+## License
 
 For licensing information, consult the following links:
 
-* OpenJDK Licensing (base image for 7.9 and below) - http://openjdk.java.net/legal/gplv2+ce.html
-* Ignition License - https://inductiveautomation.com/ignition/license
+* OpenJDK Licensing (base image for 7.9 and below) - <http://openjdk.java.net/legal/gplv2+ce.html>
+* Ignition License - <https://inductiveautomation.com/ignition/license>
 
 As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).  The use of third-party modules requires reviewing the related licensing information, as module EULAs are accepted automatically on the user's behalf.
 
