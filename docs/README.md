@@ -93,6 +93,7 @@ Variable                           | Description                                
 `GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
 `GATEWAY_HTTPS_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
 `GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
+`GATEWAY_RESTORE_DISABLED`         | Set to `1` to perform gateway restore in disabled mode.
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
