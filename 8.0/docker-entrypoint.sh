@@ -282,7 +282,8 @@ compare_versions() {
 check_for_upgrade() {
     local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
     local init_file_path="$1"
-    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2)
+    # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
+    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 | sed "s/-SNAPSHOT$//" )
 
     if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
         # Fresh/new instance, case 1
