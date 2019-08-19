@@ -43,6 +43,10 @@ RUN rm /var/lib/ignition/data/gateway.xml && \
     chown ${IGNITION_INSTALL_USERNAME}.root /var/lib/ignition/data/log4j.properties && \
     rm -rf /etc/ignition
 
+# Move Temp Directory into Data Directory and Link Former Location - BUG-14227 - https://forum.inductiveautomation.com/t/bug-14227-restoring-gateway-backup-fails-data-and-temp-are-on-different-linux-file-systems/25927
+RUN mv /var/lib/ignition/temp /var/lib/ignition/data/temp && \
+    ln -s /var/lib/ignition/data/temp /var/lib/ignition/temp
+
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
     CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep -q RUNNING
