@@ -1,7 +1,3 @@
----
-title: kcollins/ignition Docker Container
----
-
 ## Supported tags and respective `Dockerfile` links
 
 * [`8.0.4`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
@@ -14,8 +10,7 @@ title: kcollins/ignition Docker Container
 
 ## Quick Reference
 
-* **Where to file issues**:
-<https://github.com/thirdgen88/ignition-docker/issues>
+* **Where to file issues**: https://github.com/thirdgen88/ignition-docker/issues
 
 * **Maintained by**:
 Kevin Collins (independent Ignition enthusiast)
@@ -23,8 +18,7 @@ Kevin Collins (independent Ignition enthusiast)
 * **Supported architectures**:
 `amd64`
 
-* **Source of this description:**
-<https://github.com/thirdgen88/ignition-docker/tree/master/docs> ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
+* **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
 <!-- markdownlint-disable MD026 -->
 ## What is Ignition?
@@ -201,8 +195,8 @@ Once the gateway starts, you should be able to see the designated local time in 
 
 For licensing information, consult the following links:
 
-* OpenJDK Licensing (base image for 7.9 and below) - <http://openjdk.java.net/legal/gplv2+ce.html>
-* Ignition License - <https://inductiveautomation.com/ignition/license>
+* OpenJDK Licensing (base image for 7.9 and below) - http://openjdk.java.net/legal/gplv2+ce.html
+* Ignition License - https://inductiveautomation.com/ignition/license
 
 As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).  The use of third-party modules requires reviewing the related licensing information, as module EULAs are accepted automatically on the user's behalf.
 
