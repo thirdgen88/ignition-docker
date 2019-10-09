@@ -5,8 +5,8 @@ env:
   global:
     - IMAGE_NAME=kcollins/ignition
   matrix:
-    - MAJOR_VERSION=8.0 DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.5-SNAPSHOT/zip-installers/Ignition-linux-64-8.0.5-SNAPSHOT.zip
-    - MAJOR_VERSION=8.0 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.5-SNAPSHOT/zip-installers/Ignition-Edge-linux-64-8.0.5-SNAPSHOT.zip
+    - MAJOR_VERSION=8.0 DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.6-SNAPSHOT/zip-installers/Ignition-linux-64-8.0.6-SNAPSHOT.zip
+    - MAJOR_VERSION=8.0 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.6-SNAPSHOT/zip-installers/Ignition-Edge-linux-64-8.0.6-SNAPSHOT.zip
 
 before_script:
   - cd "$MAJOR_VERSION"
