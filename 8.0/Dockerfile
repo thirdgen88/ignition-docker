@@ -2,9 +2,9 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Select Ignition Version
-ARG IGNITION_VERSION="8.0.4"
-ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build8.0.4/20190916-1250/Ignition-linux-64-8.0.4.zip"
-ARG IGNITION_DOWNLOAD_SHA256="1127feefa95ee20a6f5fcdc6ddf972415eaf11a0efad0d8d6d206b1f0994b597"
+ARG IGNITION_VERSION="8.0.5"
+ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build8.0.5/20191015-1642/Ignition-linux-64-8.0.5.zip"
+ARG IGNITION_DOWNLOAD_SHA256="8558cb94246e1bc7df6c1fbaeaec3b48041f96111b96224cee88512c7aae77fd"
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip
