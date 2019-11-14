@@ -23,6 +23,12 @@ Vagrant.configure("2") do |config|
         hub.vm.provider "docker" do |d|
             d.volumes = [ "#{current_dir}/modules:/modules" ] # , "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
             d.build_dir = "."
+            d.build_args = [
+                "--build-arg",
+                "IGNITION_UID=999",
+                "--build-arg",
+                "IGNITION_GID=999"
+            ]
             d.name = "hub"
             # d.compose = true
             d.env = {
@@ -38,15 +44,21 @@ Vagrant.configure("2") do |config|
                 "--network", "ignition-docker"
             ]
         end
-
+        
         hub.vm.network "forwarded_port", guest: 8088, host: 8088, host_ip: "127.0.0.1"
         hub.vm.network "forwarded_port", guest: 8043, host: 8043, host_ip: "127.0.0.1"
     end
-
+    
     config.vm.define "spoke1" do |spoke1|
         spoke1.vm.provider "docker" do |d|
             # d.volumes = [ "#{current_dir}/modules:/modules" ] # , "#{current_dir}/restore/restore.gwbk:/restore.gwbk" ]
             d.build_dir = "."
+            d.build_args = [
+                "--build-arg",
+                "IGNITION_UID=999",
+                "--build-arg",
+                "IGNITION_GID=999"
+            ]
             d.name = "spoke1"
             # d.compose = true
             d.env = {

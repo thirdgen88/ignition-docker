@@ -7,7 +7,7 @@ ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/buil
 ARG IGNITION_DOWNLOAD_SHA256="7e69ea6f09a8bc0d67fd5fdd64102401115e3a0161f4258181285dfba8570c5d"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y wget unzip
+RUN apt-get update && apt-get install -y wget unzip fontconfig fonts-dejavu
 
 # Retrieve Ignition Installer and Perform Ignition Installation
 ENV INSTALLER_PATH /root
@@ -52,10 +52,16 @@ RUN apt-get update && apt-get install -y curl gettext procps pwgen unzip sqlite3
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
 ENV IGNITION_INSTALL_USERHOME="/home/ignition"
 
+# Build Arguments for UID/GID
+ARG IGNITION_UID
+ENV IGNITION_UID ${IGNITION_UID:-999}
+ARG IGNITION_GID
+ENV IGNITION_GID ${IGNITION_GID:-999}
+
 # Setup dedicated user, map file permissions, and set execution flags
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
-    groupadd -r ignition && \
-    useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ignition ignition && \
+    groupadd -r ignition -g ${IGNITION_GID} && \
+    useradd -r -d ${IGNITION_INSTALL_USERHOME} -u ${IGNITION_UID} -g ignition ignition && \
     chown ignition:ignition ${IGNITION_INSTALL_USERHOME}
 
 # Copy Ignition Installation from Build Image

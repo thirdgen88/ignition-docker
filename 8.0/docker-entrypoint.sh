@@ -424,7 +424,7 @@ if [ "$1" = './ignition-gateway' ]; then
         pid="$!"
 
         echo "Waiting for commissioning servlet to become active..."
-        health_check "Commissioning Phase" 10
+        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=10}
 
         perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
 
