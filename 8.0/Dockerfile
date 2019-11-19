@@ -60,14 +60,14 @@ ENV IGNITION_GID ${IGNITION_GID:-999}
 
 # Setup dedicated user, map file permissions, and set execution flags
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
-    groupadd -r ignition -g ${IGNITION_GID} && \
-    useradd -r -d ${IGNITION_INSTALL_USERHOME} -u ${IGNITION_UID} -g ignition ignition && \
-    chown ignition:ignition ${IGNITION_INSTALL_USERHOME}
+    (getent group ${IGNITION_GID} > /dev/null 2>&1 || groupadd -r ignition -g ${IGNITION_GID}) && \
+    (getent passwd ${IGNITION_UID} > /dev/null 2>&1 || useradd -r -d ${IGNITION_INSTALL_USERHOME} -u ${IGNITION_UID} -g ${IGNITION_GID} ignition) && \
+    chown ${IGNITION_UID}:${IGNITION_GID} ${IGNITION_INSTALL_USERHOME}
 
 # Copy Ignition Installation from Build Image
-COPY --chown=ignition:ignition --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
-COPY --chown=ignition:ignition --from=0 /var/lib/ignition /var/lib/ignition
-COPY --chown=ignition:ignition --from=0 /var/log/ignition /var/log/ignition
+COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
+COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=0 /var/lib/ignition /var/lib/ignition
+COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=0 /var/log/ignition /var/log/ignition
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -77,7 +77,7 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
 EXPOSE 8088 8043 8000
 
 # Launch Ignition
-USER ignition
+USER ${IGNITION_UID}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 
 # Update path to include embedded java install location
