@@ -7,8 +7,8 @@ env:
   matrix:
     - MAJOR_VERSION=7.7 FULL_VERSION=7.7.10 DOWNLOAD_URL=https://files.inductiveautomation.com/release/build7.7.10/2018112117/ignition-7.7.10-linux-x64-installer.run DOWNLOAD_MD5=1a22a4e482197f4a317d8455cd54b4a1
     - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5 DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.8.5/20161208-1312/Ignition-7.8.5-linux-x64-installer.run DOWNLOAD_MD5=dffb12fb1df320fb569ca38bcd71b347
-    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.12 DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build7.9.12/20190702-1353/zip-installers/Ignition-7.9.12-linux-x64-installer.run DOWNLOAD_MD5=9575810208d4d83b6846a39802223770
-    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.12 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build7.9.12/20190702-1353/zip-installers/Ignition-7.9.12-linux-x64-installer.run DOWNLOAD_MD5=9575810208d4d83b6846a39802223770
+    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.13 DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build7.9.13/20191209-1521/zip-installers/Ignition-7.9.13-linux-x64-installer.run DOWNLOAD_MD5=1d33de6f71790bd850938e8578b44e41
+    - MAJOR_VERSION=7.9 FULL_VERSION=7.9.13 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build7.9.13/20191209-1521/zip-installers/Ignition-7.9.13-linux-x64-installer.run DOWNLOAD_MD5=1d33de6f71790bd850938e8578b44e41
     - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.6 DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build8.0.6/20191112-1641/Ignition-linux-64-8.0.6.zip DOWNLOAD_SHA256=7e69ea6f09a8bc0d67fd5fdd64102401115e3a0161f4258181285dfba8570c5d
     - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.6 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build8.0.6/20191112-1641/Ignition-Edge-linux-64-8.0.6.zip DOWNLOAD_SHA256=317470cabca43ad2058ea554081ddb0c6a5944eea619dccffdbc727ec036aa97
 
