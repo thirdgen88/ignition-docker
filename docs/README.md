@@ -112,6 +112,24 @@ Creating an Ignition Gateway with the gateway name `spoke1` and a single outboun
 
     $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_SYSTEM_NAME=spoke1 -e GATEWAY_NETWORK_0_HOST=10.11.12.13 -d kcollins/ignition:7.9.10
 
+<!-- markdownlint-disable MD036 -->
+_Table 3 - Logging Configurability_
+<!-- markdownlint-enable MD036 -->
+
+The Java Wrapper that Ignition uses has some specific configuration variables for logging that can be useful to adjust.  See the [Logging Configuration Properties](https://wrapper.tanukisoftware.com/doc/english/props-logging.html) documentation for the wrapper for more detailed information on some of these settings.
+
+If you need to ensure that all writes to the console log are available immediately after being produced, you will want to set `WRAPPER_CONSOLE_FLUSH` to `true`.  The default behavior is for the wrapper to utilize a buffered output to stdout/stderr and can result in some minor delays in log output.
+
+Variable                       | Default | Description                                                          |
+------------------------------ | ------- | -------------------------------------------------------------------- |
+`WRAPPER_CONSOLE_FLUSH`        | _not overridden_  | Set to `true` to flush log buffer after each line. [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-flush.html)
+`WRAPPER_CONSOLE_LOGLEVEL`     | _not overridden_ | Customize the log level for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-loglevel.html)
+`WRAPPER_CONSOLE_FORMAT`       | _not overridden_    | Customize the format for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-format.html)
+`WRAPPER_SYSLOG_LOGLEVEL`      | _not overridden_ | Set the log level for syslog output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-loglevel.html)
+`WRAPPER_SYSLOG_LOCAL_HOST`    | _not overridden_ | Set the local host name reported in the remote syslog packets [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-local-host.html)
+`WRAPPER_SYSLOG_REMOTE_HOST`   | _not overridden_ | Specify the remote syslog server to send logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-host.html)
+`WRAPPER_SYSLOG_REMOTE_PORT`   | _not overridden_ | Specify the UDP port on which to transmit syslog logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-port.html)
+
 ## Connect to your Ignition instance
 
 This image exposes the standard gateway ports (`8088`, `8043`), so if you utilize the `run` sequence above, you'll be able to connect to your instance against your host computer's port `8088`.  If you wish to utilize the SSL connection, simply publish `8043` as well.

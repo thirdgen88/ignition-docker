@@ -349,6 +349,25 @@ if [ "$1" = './ignition-gateway' ]; then
         exit 1
     fi
 
+    # Collect any other declared wrapper custom options by checking if any of the environment
+    # variables are defined.  Ones that are defined will be added to the wrapper options.
+    declare -A WRAPPER_CUSTOM_OPTIONS=(
+        [WRAPPER_CONSOLE_FLUSH]=wrapper.console.flush
+        [WRAPPER_CONSOLE_LOGLEVEL]=wrapper.console.loglevel
+        [WRAPPER_CONSOLE_FORMAT]=wrapper.console.format
+        [WRAPPER_SYSLOG_LOGLEVEL]=wrapper.syslog.loglevel
+        [WRAPPER_SYSLOG_LOCAL_HOST]=wrapper.syslog.local.host
+        [WRAPPER_SYSLOG_REMOTE_HOST]=wrapper.syslog.remote.host
+        [WRAPPER_SYSLOG_REMOTE_PORT]=wrapper.syslog.remote.port
+    )
+    for opt in "${!WRAPPER_CUSTOM_OPTIONS[@]}"; do
+        if [ ! -z ${!opt} ]; then
+            WRAPPER_OPTIONS+=(
+                "${WRAPPER_CUSTOM_OPTIONS[$opt]}=${!opt}"
+            )
+        fi
+    done
+
     # Combine CMD array with wrapper and explicit java options
     if [ ! -z ${JAVA_OPTIONS:-} ]; then
         JAVA_OPTIONS=( "--" "${JAVA_OPTIONS[@]}" )
