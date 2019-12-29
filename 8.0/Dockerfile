@@ -46,7 +46,7 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen unzip sqlite3
+RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"

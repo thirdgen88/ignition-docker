@@ -90,7 +90,7 @@ Variable                           | Description                                
 `GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
 `GATEWAY_RESTORE_DISABLED`         | Set to `1` to perform gateway restore in disabled mode.
 `IGNITION_STARTUP_DELAY`           | Defaults to `60`, increase to allow for more time for initial gateway startup
-`IGNITION_COMMISSIONING_DELAY`     | Defaults to `10`, increase to allow for more time for initial commisioning servlet to become available
+`IGNITION_COMMISSIONING_DELAY`     | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
