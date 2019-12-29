@@ -8,6 +8,12 @@ env:
     - MAJOR_VERSION=8.0 DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.8-SNAPSHOT/zip-installers/Ignition-linux-64-8.0.8-SNAPSHOT.zip
     - MAJOR_VERSION=8.0 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.8-SNAPSHOT/zip-installers/Ignition-Edge-linux-64-8.0.8-SNAPSHOT.zip
 
+before_install:
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+
 before_script:
   - cd "$MAJOR_VERSION"
   # Specify image as "kcollins/ignition:7.9.7" or "kcollins/ignition:7.9.7-edge" if edition is set to edge

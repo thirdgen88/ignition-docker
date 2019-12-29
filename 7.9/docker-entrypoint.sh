@@ -233,6 +233,11 @@ check_for_upgrade() {
     local init_file_path="$1"
     local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2)
 
+    if [ ! -d "/var/lib/ignition/data/temp" ]; then
+        echo "Creating extra temp folder within data volume"
+        mkdir -p "/var/lib/ignition/data/temp"
+    fi
+
     if [ ! -f "/var/lib/ignition/data/db/config.idb" ]; then
         # Fresh/new instance, case 1
         echo "${image_version}" > "${init_file_path}"
@@ -251,8 +256,6 @@ check_for_upgrade() {
                 # Init file present, upgrade required
                 echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
                 java -classpath "lib/core/common/common-${image_version}.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . /var/lib/ignition/data /var/log/ignition file=ignition.conf
-                echo "Performing additional required volume updates"
-                mkdir -p "${IGNITION_INSTALL_LOCATION}/data/temp"
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
                 if [ ${version_check} -eq 1 ]; then 

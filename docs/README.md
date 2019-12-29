@@ -1,21 +1,16 @@
----
-title: kcollins/ignition Docker Container
----
-
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.0.3`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
-* [`8.0.3-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.7`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.7-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`nightly`, `nightly-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.0/Dockerfile)
-* [`7.9.12`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
-* [`7.9.12-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.9.13`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.9.13-edge`, `7.9-edge`, `latest-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
 * [`7.7.10`, `7.7` (7.7/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.7/Dockerfile)
 
 ## Quick Reference
 
-* **Where to file issues**:
-<https://github.com/thirdgen88/ignition-docker/issues>
+* **Where to file issues**: https://github.com/thirdgen88/ignition-docker/issues
 
 * **Maintained by**:
 Kevin Collins (independent Ignition enthusiast)
@@ -23,8 +18,7 @@ Kevin Collins (independent Ignition enthusiast)
 * **Supported architectures**:
 `amd64`
 
-* **Source of this description:**
-<https://github.com/thirdgen88/ignition-docker/tree/master/docs> ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
+* **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
 <!-- markdownlint-disable MD026 -->
 ## What is Ignition?
@@ -95,6 +89,8 @@ Variable                           | Description                                
 `GATEWAY_HTTPS_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
 `GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
 `GATEWAY_RESTORE_DISABLED`         | Set to `1` to perform gateway restore in disabled mode.
+`IGNITION_STARTUP_DELAY`           | Defaults to `60`, increase to allow for more time for initial gateway startup
+`IGNITION_COMMISSIONING_DELAY`     | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -115,6 +111,24 @@ Declaring automatically provisioned gateway network connections will require app
 Creating an Ignition Gateway with the gateway name `spoke1` and a single outbound gateway connection to `10.11.12.13` can be done as per the example below:
 
     $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_SYSTEM_NAME=spoke1 -e GATEWAY_NETWORK_0_HOST=10.11.12.13 -d kcollins/ignition:7.9.10
+
+<!-- markdownlint-disable MD036 -->
+_Table 3 - Logging Configurability_
+<!-- markdownlint-enable MD036 -->
+
+The Java Wrapper that Ignition uses has some specific configuration variables for logging that can be useful to adjust.  See the [Logging Configuration Properties](https://wrapper.tanukisoftware.com/doc/english/props-logging.html) documentation for the wrapper for more detailed information on some of these settings.
+
+If you need to ensure that all writes to the console log are available immediately after being produced, you will want to set `WRAPPER_CONSOLE_FLUSH` to `true`.  The default behavior is for the wrapper to utilize a buffered output to stdout/stderr and can result in some minor delays in log output.
+
+Variable                       | Default | Description                                                          |
+------------------------------ | ------- | -------------------------------------------------------------------- |
+`WRAPPER_CONSOLE_FLUSH`        | _not overridden_  | Set to `true` to flush log buffer after each line. [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-flush.html)
+`WRAPPER_CONSOLE_LOGLEVEL`     | _not overridden_ | Customize the log level for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-loglevel.html)
+`WRAPPER_CONSOLE_FORMAT`       | _not overridden_    | Customize the format for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-format.html)
+`WRAPPER_SYSLOG_LOGLEVEL`      | _not overridden_ | Set the log level for syslog output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-loglevel.html)
+`WRAPPER_SYSLOG_LOCAL_HOST`    | _not overridden_ | Set the local host name reported in the remote syslog packets [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-local-host.html)
+`WRAPPER_SYSLOG_REMOTE_HOST`   | _not overridden_ | Specify the remote syslog server to send logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-host.html)
+`WRAPPER_SYSLOG_REMOTE_PORT`   | _not overridden_ | Specify the UDP port on which to transmit syslog logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-port.html)
 
 ## Connect to your Ignition instance
 
@@ -201,8 +215,8 @@ Once the gateway starts, you should be able to see the designated local time in 
 
 For licensing information, consult the following links:
 
-* OpenJDK Licensing (base image for 7.9 and below) - <http://openjdk.java.net/legal/gplv2+ce.html>
-* Ignition License - <https://inductiveautomation.com/ignition/license>
+* OpenJDK Licensing (base image for 7.9 and below) - http://openjdk.java.net/legal/gplv2+ce.html
+* Ignition License - https://inductiveautomation.com/ignition/license
 
 As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).  The use of third-party modules requires reviewing the related licensing information, as module EULAs are accepted automatically on the user's behalf.
 

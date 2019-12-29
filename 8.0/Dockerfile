@@ -2,11 +2,12 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Select Ignition Version
-ARG IGNITION_VERSION="8.0.4"
-ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.4-SNAPSHOT/zip-installers/Ignition-linux-64-8.0.4-SNAPSHOT.zip"
+ARG IGNITION_VERSION="8.0.7"
+ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build8.0.7/20191220-1439/Ignition-linux-64-8.0.7.zip"
+ARG IGNITION_DOWNLOAD_SHA256="f6ac877e14a8aff9a47f49b17770b82e1f1f24dfbff33eb1af8082ef96fe8288"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y wget unzip
+RUN apt-get update && apt-get install -y wget unzip fontconfig fonts-dejavu
 
 # Retrieve Ignition Installer and Perform Ignition Installation
 ENV INSTALLER_PATH /root
@@ -14,7 +15,8 @@ ENV INSTALLER_NAME "ignition-install.zip"
 WORKDIR ${INSTALLER_PATH}
 
 # Download Installation Zip File
-RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL}
+RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
+    echo "${IGNITION_DOWNLOAD_SHA256} ${INSTALLER_NAME}" | sha256sum -c -
 
 # Extract Installation Zip File
 RUN mkdir ignition && \
@@ -44,22 +46,28 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen unzip sqlite3
+RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
 ENV IGNITION_INSTALL_USERHOME="/home/ignition"
 
+# Build Arguments for UID/GID
+ARG IGNITION_UID
+ENV IGNITION_UID ${IGNITION_UID:-999}
+ARG IGNITION_GID
+ENV IGNITION_GID ${IGNITION_GID:-999}
+
 # Setup dedicated user, map file permissions, and set execution flags
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
-    groupadd -r ignition && \
-    useradd -r -d ${IGNITION_INSTALL_USERHOME} -g ignition ignition && \
-    chown ignition:ignition ${IGNITION_INSTALL_USERHOME}
+    (getent group ${IGNITION_GID} > /dev/null 2>&1 || groupadd -r ignition -g ${IGNITION_GID}) && \
+    (getent passwd ${IGNITION_UID} > /dev/null 2>&1 || useradd -r -d ${IGNITION_INSTALL_USERHOME} -u ${IGNITION_UID} -g ${IGNITION_GID} ignition) && \
+    chown ${IGNITION_UID}:${IGNITION_GID} ${IGNITION_INSTALL_USERHOME}
 
 # Copy Ignition Installation from Build Image
-COPY --chown=ignition:ignition --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
-COPY --chown=ignition:ignition --from=0 /var/lib/ignition /var/lib/ignition
-COPY --chown=ignition:ignition --from=0 /var/log/ignition /var/log/ignition
+COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=0 /root/ignition ${IGNITION_INSTALL_LOCATION}
+COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=0 /var/lib/ignition /var/lib/ignition
+COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=0 /var/log/ignition /var/log/ignition
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -69,7 +77,7 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
 EXPOSE 8088 8043 8000
 
 # Launch Ignition
-USER ignition
+USER ${IGNITION_UID}
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 
 # Update path to include embedded java install location

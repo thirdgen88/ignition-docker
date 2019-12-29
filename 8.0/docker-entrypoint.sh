@@ -11,6 +11,8 @@ GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 
 # Init Properties Helper Functions
+# usage: add_to_init KEY ENV_VAR_NAME
+#    ie: add_to_init gateway.network.0.Enabled GATEWAY_NETWORK_0_ENABLED
 add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
@@ -21,6 +23,8 @@ add_to_init () {
 }
 
 # Gateway Network Init Properties Helper Function
+# usage: add_gw_to_init INDEX
+#    ie: add_gw_to_init 0
 add_gw_to_init () {
     # This function will add any other defined variables (via add_to_init) for a gateway
     # network connection definition.
@@ -72,11 +76,11 @@ file_env() {
 	unset "$fileVar"
 }
 
-# usage: perform_commissioning URL START_FLAG
+# usage: perform_commissioning URL RESTORE_FLAG
 #   ie: perform_commissioning http://localhost:8088/post-step 1
 perform_commissioning() {
     local url="$1"
-    local start_flag_value="$2"
+    local restore_flag_value="$2"
 
     echo "Performing commissioning actions..."
 
@@ -108,7 +112,7 @@ perform_commissioning() {
     # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
 
     # Finalize
-    if [ "${start_flag_value}" = "1" ]; then
+    if [ "${restore_flag_value}" = "0" ]; then
         local start_flag="true"
     else
         local start_flag="false"
@@ -148,8 +152,8 @@ stop_process() {
     fi
 }
 
-# usage register_modules RELINK_ENABLED
-#   ie: register_modules true
+# usage register_modules RELINK_ENABLED DB_LOCATION
+#   ie: register_modules true /var/lib/ignition/data/db/config.idb
 register_modules() {
     if [ ! -d "/modules" ]; then
         return 0  # Silently exit if there is no /modules path
@@ -158,17 +162,18 @@ register_modules() {
     fi
 
     local RELINK_ENABLED="${1:-false}"
-    local SQLITE3=( sqlite3 /var/lib/ignition/data/db/config.idb )
+    local DB_LOCATION="${2}"
+    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
     # Remove Invalid Symbolic Links
-    find /var/lib/ignition/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find ${IGNITION_INSTALL_LOCATION}/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new modules and tie into db
     for module in /modules/*.modl; do
         local module_basename=$(basename "${module}")
         local module_sourcepath=${module}
-        local module_destpath="/var/lib/ignition/user-lib/modules/${module_basename}"
-        local keytool="/usr/local/share/ignition/lib/runtime/jre-nix/bin/keytool"
+        local module_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/modules/${module_basename}"
+        local keytool="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre-nix/bin/keytool"
 
         if [ -h "${module_destpath}" ]; then
             echo "Skipping Linked Module: ${module_basename}"
@@ -350,6 +355,25 @@ if [ "$1" = './ignition-gateway' ]; then
         exit 1
     fi
 
+    # Collect any other declared wrapper custom options by checking if any of the environment
+    # variables are defined.  Ones that are defined will be added to the wrapper options.
+    declare -A WRAPPER_CUSTOM_OPTIONS=(
+        [WRAPPER_CONSOLE_FLUSH]=wrapper.console.flush
+        [WRAPPER_CONSOLE_LOGLEVEL]=wrapper.console.loglevel
+        [WRAPPER_CONSOLE_FORMAT]=wrapper.console.format
+        [WRAPPER_SYSLOG_LOGLEVEL]=wrapper.syslog.loglevel
+        [WRAPPER_SYSLOG_LOCAL_HOST]=wrapper.syslog.local.host
+        [WRAPPER_SYSLOG_REMOTE_HOST]=wrapper.syslog.remote.host
+        [WRAPPER_SYSLOG_REMOTE_PORT]=wrapper.syslog.remote.port
+    )
+    for opt in "${!WRAPPER_CUSTOM_OPTIONS[@]}"; do
+        if [ ! -z ${!opt} ]; then
+            WRAPPER_OPTIONS+=(
+                "${WRAPPER_CUSTOM_OPTIONS[$opt]}=${!opt}"
+            )
+        fi
+    done
+
     # Combine CMD array with wrapper and explicit java options
     if [ ! -z ${JAVA_OPTIONS:-} ]; then
         JAVA_OPTIONS=( "--" "${JAVA_OPTIONS[@]}" )
@@ -408,51 +432,57 @@ if [ "$1" = './ignition-gateway' ]; then
             export GATEWAY_RESTORE_REQUIRED="0"
         fi
 
-        # Accumulate Gateway Command Utility Options
-        if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
-            GWCMD_OPTIONS+=( "--disabled" )
-        fi
-        if [ ! -z "${GATEWAY_SYSTEM_NAME:-}" ]; then
-            GWCMD_OPTIONS+=( "--name" $(echo "${GATEWAY_SYSTEM_NAME}" | sed 's/ //g') )
-        fi
-        if [ ${#GWCMD_OPTIONS[@]} -gt 0 ]; then
-            echo "Gateway Restore Options: ${GWCMD_OPTIONS[@]}"
+        # Gateway Restore
+        if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
+            # Accumulate Gateway Command Utility Options
+            if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
+                GWCMD_OPTIONS+=( "--disabled" )
+            fi
+            if [ ! -z "${GATEWAY_SYSTEM_NAME:-}" ]; then
+                GWCMD_OPTIONS+=( "--name" $(echo "${GATEWAY_SYSTEM_NAME}" | sed 's/ //g') )
+            fi
+            if [ ${#GWCMD_OPTIONS[@]} -gt 0 ]; then
+                echo "Gateway Restore Options: ${GWCMD_OPTIONS[@]}"
+            fi
+
+            echo 'Restoring Gateway Backup...'
+            ./gwcmd.sh --restore /restore.gwbk ${GWCMD_OPTIONS[@]} -y
+            restore_file_path=$(find "${IGNITION_INSTALL_LOCATION}/data/" -maxdepth 1 -regex "${IGNITION_INSTALL_LOCATION}/data/__restore_[disabled_]*[0-9]+\.gwbk" | head -n 1)
+
+            if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) ]]; then
+                pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
+                unzip -q "${restore_file_path}" db_backup_sqlite.idb
+                register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+                zip -q -f "${restore_file_path}" db_backup_sqlite.idb
+                popd > /dev/null 2>&1
+            fi
         fi
 
-        # Initialize Startup Gateway before Attempting Restore
+        # Initialize Gateway
         echo "Provisioning will be logged here: ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log"
         "${CMD[@]}" > ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log 2>&1 &
         pid="$!"
 
         echo "Waiting for commissioning servlet to become active..."
-        health_check "Commissioning Phase" 10
+        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=10}
 
         perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
-
-        # Perform Module Registration and Restore of Gateway Backup
-        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
+        
+        # If not restoring (but module registration required), allow spool-up of base gateway
+        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) && "${GATEWAY_RESTORE_REQUIRED}" != "1" ]]; then
             sleep 5
             echo "Commissioning completed, awaiting initial gateway startup..."
             health_check "Startup" ${IGNITION_STARTUP_DELAY:=60}
+            stop_process $pid
 
-            # Gateway Restore
-            if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
-                echo 'Restoring Gateway Backup...'
-                ./gwcmd.sh --restore /restore.gwbk ${GWCMD_OPTIONS[@]} -y
-                stop_process $pid
-            fi
-
-            # Link Additional Modules and prepare Ignition database
-            register_modules ${GATEWAY_MODULE_RELINK}
-        fi
-
-        if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" ]; then
+            register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+        else
             stop_process $pid
         fi
 
         echo 'Starting Ignition Gateway...'
     else
-        register_modules ${GATEWAY_MODULE_RELINK}
+        register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     fi
 fi
 
