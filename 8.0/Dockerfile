@@ -2,9 +2,8 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Select Ignition Version
-ARG IGNITION_VERSION="8.0.7"
-ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build8.0.7/20191220-1439/Ignition-linux-64-8.0.7.zip"
-ARG IGNITION_DOWNLOAD_SHA256="f6ac877e14a8aff9a47f49b17770b82e1f1f24dfbff33eb1af8082ef96fe8288"
+ARG IGNITION_VERSION="8.0.8"
+ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.8-SNAPSHOT/zip-installers/Ignition-linux-64-8.0.8-SNAPSHOT.zip"
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip fontconfig fonts-dejavu
@@ -15,8 +14,7 @@ ENV INSTALLER_NAME "ignition-install.zip"
 WORKDIR ${INSTALLER_PATH}
 
 # Download Installation Zip File
-RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL} && \
-    echo "${IGNITION_DOWNLOAD_SHA256} ${INSTALLER_NAME}" | sha256sum -c -
+RUN wget -q --referer https://inductiveautomation.com/* -O ${INSTALLER_NAME} ${IGNITION_DOWNLOAD_URL}
 
 # Extract Installation Zip File
 RUN mkdir ignition && \
