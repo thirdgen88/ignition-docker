@@ -452,7 +452,7 @@ if [ "$1" = './ignition-gateway' ]; then
                 pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
                 unzip -q "${restore_file_path}" db_backup_sqlite.idb
                 register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-                zip -q -f "${restore_file_path}" db_backup_sqlite.idb
+                zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ $? == 12 ]; then echo "No changes to internal database needed for linked modules."; else return 1; fi
                 popd > /dev/null 2>&1
             fi
         fi
