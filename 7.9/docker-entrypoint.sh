@@ -8,6 +8,7 @@ CMD=( "$@" )
 WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
+GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 
 # Init Properties Helper Functions
 add_to_init () {
@@ -100,6 +101,74 @@ stop_process() {
         echo >&2 'Ignition initialization process failed.'
         exit 1
     fi
+}
+
+# usage register_jdbc RELINK_ENABLED
+#   ie: register_jdbc true
+register_jdbc() {
+    if [ ! -d "/jdbc" ]; then
+        return 0  # Silently exit if there is no /jdbc path
+    else
+        echo "Searching for third-party JDBC drivers..."
+    fi
+
+    local RELINK_ENABLED="${1:-false}"
+    local SQLITE3=( sqlite3 /var/lib/ignition/data/db/config.idb )
+
+    # Get List of JDBC Drivers
+    JDBC_CLASSNAMES=( $( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;") )
+    JDBC_CLASSPATHS=( $(echo ${JDBC_CLASSNAMES[@]} | sed 's/\./\//g') )
+
+    # Remove Invalid Symbolic Links
+    find /var/lib/ignition/user-lib/jdbc -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+
+    # Establish Symbolic Links for new jdbc drivers and tie into db
+    for jdbc in /jdbc/*.jar; do
+        local jdbc_basename=$(basename "${jdbc}")
+        local jdbc_sourcepath=${jdbc}
+        local jdbc_destpath="/var/lib/ignition/user-lib/jdbc/${jdbc_basename}"
+        local jdbc_targetclasspath=""
+        
+        if [ -h "${jdbc_destpath}" ]; then
+            echo "Skipping Linked JDBC Driver: ${jdbc_basename}"
+            continue
+        fi
+
+        # Determine if jdbc driver is a candidate for linking based on searching
+        # the list of existing JDBC Classname entries gathered above.
+        local jdbc_listing=$(unzip -l ${jdbc})
+        for ((i=0; i<${#JDBC_CLASSPATHS[*]}; i++)); do
+            classpath=${JDBC_CLASSPATHS[i]}
+            classname=${JDBC_CLASSNAMES[i]}
+            case ${jdbc_listing} in
+                *$classpath*)
+                jdbc_targetclasspath=$classpath
+                jdbc_targetclassname=$classname
+                break;;
+            esac
+        done
+
+        # If we didn't find a match, ...
+        if [ -z ${jdbc_targetclassname} ]; then
+            continue  # ... skip to next JDBC driver in path
+        fi
+
+        if [ -e "${jdbc_destpath}" ]; then
+            if [ "${RELINK_ENABLED}" != true ]; then
+                echo "Skipping existing JDBC driver: ${jdbc_basename}"
+                continue
+            fi
+            echo "Relinking JDBC Driver: ${jdbc_basename}"
+            rm "${jdbc_destpath}"
+        else
+            echo "Linking JDBC Driver: ${jdbc_basename}"
+        fi
+        ln -s "${jdbc_sourcepath}" "${jdbc_destpath}"
+
+        # Update JDBCDRIVERS table
+        echo "  Updating JDBCDRIVERS table for classname ${jdbc_targetclassname}"
+        "${SQLITE3[@]}" "UPDATE JDBCDRIVERS SET JARFILE='${jdbc_basename}' WHERE CLASSNAME='${jdbc_targetclassname}'"
+    done
 }
 
 # usage register_modules RELINK_ENABLED
@@ -347,7 +416,9 @@ if [ "$1" = './ignition-gateway' ]; then
         fi
 
         # Perform Module Registration and Restore of Gateway Backup
-        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
+        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || 
+              (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) || 
+              "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
             # Initialize Startup Gateway before Attempting Restore
             echo "Ignition initialization process in progress, logged here: /var/log/ignition/provisioning.log"
             "${CMD[@]}" > /var/log/ignition/provisioning.log 2>&1 &
@@ -365,11 +436,15 @@ if [ "$1" = './ignition-gateway' ]; then
 
             # Link Additional Modules and prepare Ignition database
             register_modules ${GATEWAY_MODULE_RELINK}
+
+            # Link Additional JDBC Drivers and prepare Ignition database
+            register_jdbc ${GATEWAY_JDBC_RELINK}
         fi
 
         echo 'Starting Ignition Gateway...'
     else
         register_modules ${GATEWAY_MODULE_RELINK}
+        register_jdbc ${GATEWAY_JDBC_RELINK}
     fi
 fi
 
