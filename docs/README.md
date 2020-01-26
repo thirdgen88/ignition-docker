@@ -88,6 +88,7 @@ Variable                           | Description                                
 `GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
 `GATEWAY_HTTPS_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
 `GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
+`GATEWAY_JDBC_RELINK`              | Set to `true` to allow replacement of built-in JDBC drivers
 `GATEWAY_RESTORE_DISABLED`         | Set to `1` to perform gateway restore in disabled mode.
 `IGNITION_STARTUP_DELAY`           | Defaults to `60`, increase to allow for more time for initial gateway startup
 `IGNITION_COMMISSIONING_DELAY`     | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
@@ -157,7 +158,7 @@ If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignit
 
 This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container).
 
-## Features
+# Features
 
 ## How to persist Gateway data
 
@@ -191,6 +192,26 @@ To add external or third-party modules to your gateway, place your modules in a 
 Note that if you wish to remove a third-party module from your gateway, you will need to remove it from `/path/to/my/modules` after removing it through the Gateway Webpage.  If you do not remove the module from the bind-mount path, it will be relinked the next time the gateway restarts.
 
 If you wish to overwrite a built-in module with one from the bind-mount path, declare an environment variable `GATEWAY_MODULE_RELINK=true`.  This will cause the built-in module to be removed and the new one linked in its place prior to gateway startup.
+
+## How to integrate third party JDBC drivers
+
+_New with latest 7.9.13 and 8.0.7 images as of 2020-01-25!_
+
+To automatically link and associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.  No additional action is needed to then leverage database connections with those drivers within the gateway.
+
+    $ ls /path/to/my/jdbc-drivers
+
+    mysql-connector-java-8.0.19.jar
+
+    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition/data \
+         -v /path/to/my/jdbc-drivers:/jdbc \
+         -v /path/to/my/modules:/modules \
+         -e GATEWAY_ADMIN_PASSWORD=password \
+         -d kcollins/ignition:8.0.7
+
+Note that if you remove the JDBC driver `.jar` file in the future, the `JDBCDRIVERS` database table within your gateway configuration database will likely still have the filename definition there, expecting a file to be available.
+
+If you wish to link in a JDBC driver with the same name as a built-in driver, declare an environment variable `GATEWAY_JDBC_RELINK=true`.  This will cause the built-in JDBC driver to be removed and the new one linked in its place prior to gateway startup.
 
 ## Upgrading a volume-persisted Ignition Container
 

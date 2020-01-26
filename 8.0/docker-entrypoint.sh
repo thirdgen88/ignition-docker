@@ -9,6 +9,7 @@ WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
 GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
+GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
@@ -150,6 +151,75 @@ stop_process() {
         echo >&2 'Ignition initialization process failed.'
         exit 1
     fi
+}
+
+# usage register_jdbc RELINK_ENABLED DB_LOCATION
+#   ie: register_jdbc true /var/lib/ignition/data/db/config.idb
+register_jdbc() {
+    if [ ! -d "/jdbc" ]; then
+        return 0  # Silently exit if there is no /jdbc path
+    else
+        echo "Searching for third-party JDBC drivers..."
+    fi
+
+    local RELINK_ENABLED="${1:-false}"
+    local DB_LOCATION="${2}"
+    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
+
+    # Get List of JDBC Drivers
+    JDBC_CLASSNAMES=( $( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;") )
+    JDBC_CLASSPATHS=( $(echo ${JDBC_CLASSNAMES[@]} | sed 's/\./\//g') )
+
+    # Remove Invalid Symbolic Links
+    find ${IGNITION_INSTALL_LOCATION}/user-lib/jdbc -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+
+    # Establish Symbolic Links for new jdbc drivers and tie into db
+    for jdbc in /jdbc/*.jar; do
+        local jdbc_basename=$(basename "${jdbc}")
+        local jdbc_sourcepath=${jdbc}
+        local jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
+        local jdbc_targetclasspath=""
+        
+        if [ -h "${jdbc_destpath}" ]; then
+            echo "Skipping Linked JDBC Driver: ${jdbc_basename}"
+            continue
+        fi
+
+        # Determine if jdbc driver is a candidate for linking based on searching
+        # the list of existing JDBC Classname entries gathered above.
+        local jdbc_listing=$(unzip -l ${jdbc})
+        for ((i=0; i<${#JDBC_CLASSPATHS[*]}; i++)); do
+            classpath=${JDBC_CLASSPATHS[i]}
+            classname=${JDBC_CLASSNAMES[i]}
+            case ${jdbc_listing} in
+                *$classpath*)
+                jdbc_targetclasspath=$classpath
+                jdbc_targetclassname=$classname
+                break;;
+            esac
+        done
+
+        # If we didn't find a match, ...
+        if [ -z ${jdbc_targetclassname} ]; then
+            continue  # ... skip to next JDBC driver in path
+        fi
+
+        if [ -e "${jdbc_destpath}" ]; then
+            if [ "${RELINK_ENABLED}" != true ]; then
+                echo "Skipping existing JDBC driver: ${jdbc_basename}"
+                continue
+            fi
+            echo "Relinking JDBC Driver: ${jdbc_basename}"
+            rm "${jdbc_destpath}"
+        else
+            echo "Linking JDBC Driver: ${jdbc_basename}"
+        fi
+        ln -s "${jdbc_sourcepath}" "${jdbc_destpath}"
+
+        # Update JDBCDRIVERS table
+        echo "  Updating JDBCDRIVERS table for classname ${jdbc_targetclassname}"
+        "${SQLITE3[@]}" "UPDATE JDBCDRIVERS SET JARFILE='${jdbc_basename}' WHERE CLASSNAME='${jdbc_targetclassname}'"
+    done
 }
 
 # usage register_modules RELINK_ENABLED DB_LOCATION
@@ -449,11 +519,12 @@ if [ "$1" = './ignition-gateway' ]; then
             ./gwcmd.sh --restore /restore.gwbk ${GWCMD_OPTIONS[@]} -y
             restore_file_path=$(find "${IGNITION_INSTALL_LOCATION}/data/" -maxdepth 1 -regex "${IGNITION_INSTALL_LOCATION}/data/__restore_[disabled_]*[0-9]+\.gwbk" | head -n 1)
 
-            if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) ]]; then
+            if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) ]]; then
                 pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
                 unzip -q "${restore_file_path}" db_backup_sqlite.idb
                 register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-                zip -q -f "${restore_file_path}" db_backup_sqlite.idb
+                register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+                zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ ${ZIP_EXIT_CODE:=$?} == 12 ]; then echo "No changes to internal database needed for linked modules."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
                 popd > /dev/null 2>&1
             fi
         fi
@@ -469,13 +540,16 @@ if [ "$1" = './ignition-gateway' ]; then
         perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
         
         # If not restoring (but module registration required), allow spool-up of base gateway
-        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) && "${GATEWAY_RESTORE_REQUIRED}" != "1" ]]; then
+        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || 
+              (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) && 
+              "${GATEWAY_RESTORE_REQUIRED}" != "1" ]]; then
             sleep 5
             echo "Commissioning completed, awaiting initial gateway startup..."
             health_check "Startup" ${IGNITION_STARTUP_DELAY:=60}
             stop_process $pid
-
+            
             register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+            register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         else
             stop_process $pid
         fi
@@ -483,6 +557,7 @@ if [ "$1" = './ignition-gateway' ]; then
         echo 'Starting Ignition Gateway...'
     else
         register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+        register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     fi
 fi
 
