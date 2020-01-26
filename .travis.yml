@@ -1,5 +1,7 @@
-language: bash
-services: docker
+language: minimal
+
+services:
+  - docker
 
 env:
   global:

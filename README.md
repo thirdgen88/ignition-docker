@@ -1,6 +1,6 @@
 # Ignition Docker
 
-[![Build Status](https://travis-ci.org/thirdgen88/ignition-docker.svg?branch=master)](https://travis-ci.org/thirdgen88/ignition-docker)
+[![Build Status](https://travis-ci.com/thirdgen88/ignition-docker.svg?branch=master)](https://travis-ci.com/thirdgen88/ignition-docker)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/ignition-docker/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 [![Docker Stars](https://img.shields.io/docker/stars/kcollins/ignition.svg)](https://hub.docker.com/r/kcollins/ignition)
 [![Docker Pulls](https://img.shields.io/docker/pulls/kcollins/ignition.svg)](https://hub.docker.com/r/kcollins/ignition)
