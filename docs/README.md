@@ -197,7 +197,7 @@ If you wish to overwrite a built-in module with one from the bind-mount path, de
 
 _New with latest 7.9.13 and 8.0.7 images as of 2020-01-25!_
 
-To automatically link and associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.  No additional action is needed to then leverage database connections with those drivers within the gateway.
+To automatically link any associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.  No additional action is needed to then leverage database connections with those drivers within the gateway.
 
     $ ls /path/to/my/jdbc-drivers
 
