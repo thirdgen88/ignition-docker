@@ -5,8 +5,8 @@ env:
   global:
     - IMAGE_NAME=kcollins/ignition
   matrix:
-    - MAJOR_VERSION=8.0 DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.10-SNAPSHOT/Ignition-linux-64-8.0.10-SNAPSHOT.zip
-    - MAJOR_VERSION=8.0 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.10-SNAPSHOT/Ignition-Edge-linux-64-8.0.10-SNAPSHOT.zip
+    - MAJOR_VERSION=8.0 DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.11-SNAPSHOT/Ignition-linux-64-8.0.11-SNAPSHOT.zip
+    - MAJOR_VERSION=8.0 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.11-SNAPSHOT/Ignition-Edge-linux-64-8.0.11-SNAPSHOT.zip
 
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
