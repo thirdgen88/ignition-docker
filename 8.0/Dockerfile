@@ -2,9 +2,9 @@ FROM debian:stretch-slim
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Select Ignition Version
-ARG IGNITION_VERSION="8.0.9"
-ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.9/20200218-1154/Ignition-linux-64-8.0.9.zip"
-ARG IGNITION_DOWNLOAD_SHA256="ca3576bb3e992d2ef080827481bc075569066acfcae28fc349206be046e13ca1"
+ARG IGNITION_VERSION="8.0.10"
+ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.10/20200319-1212/Ignition-linux-64-8.0.10.zip"
+ARG IGNITION_DOWNLOAD_SHA256="a137891119bf65b299ad23c7012c11e61b50055d4e2937a9a42330188ede3f0e"
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip fontconfig fonts-dejavu
