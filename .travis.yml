@@ -11,8 +11,8 @@ env:
     - MAJOR_VERSION=7.8 FULL_VERSION=7.8.5 DOWNLOAD_URL=https://s3.amazonaws.com/files.inductiveautomation.com/release/ia/build7.8.5/20161208-1312/Ignition-7.8.5-linux-x64-installer.run DOWNLOAD_MD5=dffb12fb1df320fb569ca38bcd71b347
     - MAJOR_VERSION=7.9 FULL_VERSION=7.9.13 DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build7.9.13/20191209-1521/zip-installers/Ignition-7.9.13-linux-x64-installer.run DOWNLOAD_MD5=1d33de6f71790bd850938e8578b44e41
     - MAJOR_VERSION=7.9 FULL_VERSION=7.9.13 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/build7.9.13/20191209-1521/zip-installers/Ignition-7.9.13-linux-x64-installer.run DOWNLOAD_MD5=1d33de6f71790bd850938e8578b44e41
-    - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.10 DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/8.0.10/20200319-1212/Ignition-linux-64-8.0.10.zip DOWNLOAD_SHA256=a137891119bf65b299ad23c7012c11e61b50055d4e2937a9a42330188ede3f0e
-    - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.10 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/8.0.10/20200319-1212/Ignition-Edge-linux-64-8.0.10.zip DOWNLOAD_SHA256=fe41efe35cafabbb03cbcfcf4e7ef9108871cdc1b93dea4978a0271f6af25f1c
+    - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.11 DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/8.0.11/20200414-1135/Ignition-linux-64-8.0.11.zip DOWNLOAD_SHA256=1beea27fc5cd7e0b91abb61de618f58546fe16ad1906cb54cd9019f6c214f316
+    - LATEST=1 MAJOR_VERSION=8.0 FULL_VERSION=8.0.11 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/release/ia/8.0.11/20200414-1135/Ignition-Edge-linux-64-8.0.11.zip DOWNLOAD_SHA256=7a4a06413d745baf479f2dd337e09db0332ae1f5a14edea7e5c077f4ffeacbfe
 
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
