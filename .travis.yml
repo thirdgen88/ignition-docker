@@ -15,7 +15,7 @@ before_install:
 before_script:
   - sudo service docker restart
   - docker run --privileged linuxkit/binfmt:v0.8
-  - docker buildx create mybuilder && docker buildx use mybuilder
+  - docker buildx create --name mybuilder && docker buildx use mybuilder
   - echo $HUB_PASSWORD | docker login -u "$HUB_LOGIN" --password-stdin
 
 script:
