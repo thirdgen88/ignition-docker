@@ -5,9 +5,9 @@ LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 RUN apt-get update && apt-get install -y gettext procps unzip sqlite3
 
 # Select Ignition Version and Edition
-ARG IGNITION_VERSION="7.9.13"
-ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.13/20191209-1521/zip-installers/Ignition-7.9.13-linux-x64-installer.run"
-ARG IGNITION_DOWNLOAD_MD5="1d33de6f71790bd850938e8578b44e41"
+ARG IGNITION_VERSION="7.9.14"
+ARG IGNITION_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.14/20200428-1306/zip-installers/Ignition-7.9.14-linux-x64-installer.run"
+ARG IGNITION_DOWNLOAD_MD5="0e4cdff25c86accc141409a67d25a46a"
 ARG IGNITION_EDITION=full
 
 # Setup Install Targets

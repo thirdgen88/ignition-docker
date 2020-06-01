@@ -1,12 +1,10 @@
-language: bash
-services: docker  
+language: minimal
+
+services:
+  - docker
 
 env:
-  global:
-    - IMAGE_NAME=kcollins/ignition
-  matrix:
-    - MAJOR_VERSION=8.0 DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-linux-64-8.0.14-SNAPSHOT.zip
-    - MAJOR_VERSION=8.0 EDITION=edge DOWNLOAD_URL=https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-Edge-linux-64-8.0.14-SNAPSHOT.zip
+  - DOCKER_CLI_EXPERIMENTAL=enabled
 
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
@@ -15,21 +13,13 @@ before_install:
   - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
 
 before_script:
-  - cd "$MAJOR_VERSION"
-  # Specify image as "kcollins/ignition:7.9.7" or "kcollins/ignition:7.9.7-edge" if edition is set to edge
-  - NIGHTLY_IMAGE="$IMAGE_NAME:nightly${EDITION:+-$EDITION}"
-
-script:
-  - travis_retry docker build --build-arg IGNITION_EDITION=${EDITION:-full} ${DOWNLOAD_URL:+--build-arg IGNITION_DOWNLOAD_URL=${DOWNLOAD_URL}} -t "$NIGHTLY_IMAGE" .
-
-after_script:
-  - docker images
-
-before_deploy:
+  - sudo service docker restart
+  - sudo docker run --privileged linuxkit/binfmt:v0.8
   - echo $HUB_PASSWORD | docker login -u "$HUB_LOGIN" --password-stdin
 
-deploy:
-  provider: script
-  script: docker push "$NIGHTLY_IMAGE"
-  on:
-    branch: nightly
+script:
+  - make multibuild-nightly
+
+branches:
+  only:
+    - master
