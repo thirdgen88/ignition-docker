@@ -22,9 +22,9 @@ ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="7e9aba6cf155e52a3aaa5b2322a810c8e500ec6
 ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-Edge-linux-armhf-8.0.12.zip"
 ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="f56e0702479e4d1084966691263f971c9d1ec9a62a7e94e63409fed689ad6111"
 ARG IGNITION_NIGHTLY_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-linux-armhf-8.0.14-SNAPSHOT.zip"
-ARG IGNITION_NIGHTLY_FULL_ARMHF_SHA256="notused"
+ARG IGNITION_NIGHTLY_FULL_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-Edge-linux-armhf-8.0.14-SNAPSHOT.zip"
-ARG IGNITION_NIGHTLY_EDGE_ARMHF_SHA256="notused"
+ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 
 # Default Build Edition - FULL, EDGE, NIGHTLY_FULL, or NIGHTLY_EDGE
@@ -44,7 +44,7 @@ RUN set -exo pipefail; \
     download_url_env="IGNITION_${BUILD_EDITION}_${dpkg_arch}_DOWNLOAD_URL"; \
     download_sha256_env="IGNITION_${BUILD_EDITION}_${dpkg_arch}_DOWNLOAD_SHA256"; \
     if [ -n "${!download_url_env}" ] && [ -n "${!download_sha256_env}" ]; then \
-        wget --referer https://inductiveautomation.com/* -O "${INSTALLER_NAME}" "${!download_url_env}" && \
+        wget -q --referer https://inductiveautomation.com/* -O "${INSTALLER_NAME}" "${!download_url_env}" && \
         if [[ ${BUILD_EDITION} != *"NIGHTLY"* ]]; then echo "${!download_sha256_env}" "${INSTALLER_NAME}" | sha256sum -c -; fi ; \
     else \
         echo "Architecture ${dpkg_arch} download targets not defined, aborting build"; \
