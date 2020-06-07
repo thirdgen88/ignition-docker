@@ -78,7 +78,7 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM 8-jre-hotspot as final
+FROM adoptopenjdk:8-jre-hotspot as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
