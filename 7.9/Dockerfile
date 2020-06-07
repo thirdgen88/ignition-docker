@@ -70,6 +70,13 @@ RUN if [[ "${BUILD_EDITION}" == *"EDGE"* ]]; then \
       if [ $? = 1 ]; then sed -i "/^wrapper\.java\.additional\.${prev_index}/a wrapper.java.additional.$(( ${prev_index} + 1 ))=-Dedition=edge" /var/lib/ignition/data/ignition.conf; fi; \
     fi
 
+# Unpack common jar if necessary for compatibility with upgrader
+RUN common_jar="lib/core/common/common-${IGNITION_VERSION}.jar"; \
+    common_jar_pack="${common_jar}.pack.gz"; \
+    if [ ! -f "${common_jar}" -a -f "${common_jar_pack}" ]; then \
+      unpack200 "${common_jar_pack}" "${common_jar}"; \
+    fi
+
 # RUNTIME IMAGE
 FROM debian:buster-slim as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
