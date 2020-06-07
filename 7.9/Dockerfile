@@ -108,7 +108,7 @@ COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
-    CMD curl -f http://localhost:8088/main/StatusPing 2>&1 | grep RUNNING
+    CMD curl --max-time 3 -f http://localhost:8088/main/StatusPing 2>&1 | grep RUNNING
 
 # Setup Port Expose
 EXPOSE 8088 8043 8000
