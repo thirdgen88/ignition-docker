@@ -3,7 +3,7 @@ set -eo pipefail
 shopt -s nullglob
 
 # Local initialization
-INIT_FILE=/var/lib/ignition/data/init.properties
+INIT_FILE=/usr/local/share/ignition/data/init.properties
 CMD=( "$@" )
 WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
@@ -11,6 +11,8 @@ GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 
 # Init Properties Helper Functions
+# usage: add_to_init KEY ENV_VAR_NAME
+#    ie: add_to_init gateway.network.0.Enabled GATEWAY_NETWORK_0_ENABLED
 add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
@@ -21,6 +23,8 @@ add_to_init () {
 }
 
 # Gateway Network Init Properties Helper Function
+# usage: add_gw_to_init INDEX
+#    ie: add_gw_to_init 0
 add_gw_to_init () {
     # This function will add any other defined variables (via add_to_init) for a gateway
     # network connection definition.
@@ -80,7 +84,7 @@ health_check() {
 
     # Wait for a short period for the commissioning servlet to come alive
     for ((i=${delay};i>0;i--)); do
-        if curl -f http://localhost:8088/main/StatusPing 2>&1 | grep -c RUNNING > /dev/null; then   
+        if curl --max-time 3 -f http://localhost:8088/main/StatusPing 2>&1 | grep -c RUNNING > /dev/null; then   
             break
         fi
         sleep 1
@@ -103,8 +107,8 @@ stop_process() {
     fi
 }
 
-# usage register_jdbc RELINK_ENABLED
-#   ie: register_jdbc true
+# usage register_jdbc RELINK_ENABLED DB_LOCATION
+#   ie: register_jdbc true /var/lib/ignition/data/db/config.idb
 register_jdbc() {
     if [ ! -d "/jdbc" ]; then
         return 0  # Silently exit if there is no /jdbc path
@@ -113,20 +117,21 @@ register_jdbc() {
     fi
 
     local RELINK_ENABLED="${1:-false}"
-    local SQLITE3=( sqlite3 /var/lib/ignition/data/db/config.idb )
+    local DB_LOCATION="${2}"
+    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
     # Get List of JDBC Drivers
     JDBC_CLASSNAMES=( $( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;") )
     JDBC_CLASSPATHS=( $(echo ${JDBC_CLASSNAMES[@]} | sed 's/\./\//g') )
 
     # Remove Invalid Symbolic Links
-    find /var/lib/ignition/user-lib/jdbc -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find ${IGNITION_INSTALL_LOCATION}/user-lib/jdbc -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new jdbc drivers and tie into db
     for jdbc in /jdbc/*.jar; do
         local jdbc_basename=$(basename "${jdbc}")
         local jdbc_sourcepath=${jdbc}
-        local jdbc_destpath="/var/lib/ignition/user-lib/jdbc/${jdbc_basename}"
+        local jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
         local jdbc_targetclasspath=""
         
         if [ -h "${jdbc_destpath}" ]; then
@@ -171,8 +176,8 @@ register_jdbc() {
     done
 }
 
-# usage register_modules RELINK_ENABLED
-#   ie: register_modules true
+# usage register_modules RELINK_ENABLED DB_LOCATION
+#   ie: register_modules true /var/lib/ignition/data/db/config.idb
 register_modules() {
     if [ ! -d "/modules" ]; then
         return 0  # Silently exit if there is no /modules path
@@ -181,16 +186,17 @@ register_modules() {
     fi
 
     local RELINK_ENABLED="${1:-false}"
-    local SQLITE3=( sqlite3 /var/lib/ignition/data/db/config.idb )
+    local DB_LOCATION="${2}"
+    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
     # Remove Invalid Symbolic Links
-    find /var/lib/ignition/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find ${IGNITION_INSTALL_LOCATION}/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new modules and tie into db
     for module in /modules/*.modl; do
         local module_basename=$(basename "${module}")
         local module_sourcepath=${module}
-        local module_destpath="/var/lib/ignition/user-lib/modules/${module_basename}"
+        local module_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/modules/${module_basename}"
         local keytool=$(which keytool)
 
         if [ -h "${module_destpath}" ]; then
@@ -302,12 +308,12 @@ check_for_upgrade() {
     local init_file_path="$1"
     local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2)
 
-    if [ ! -d "/var/lib/ignition/data/temp" ]; then
+    if [ ! -d "${IGNITION_INSTALL_LOCATION}/data/temp" ]; then
         echo "Creating extra temp folder within data volume"
-        mkdir -p "/var/lib/ignition/data/temp"
+        mkdir -p "${IGNITION_INSTALL_LOCATION}/data/temp"
     fi
 
-    if [ ! -f "/var/lib/ignition/data/db/config.idb" ]; then
+    if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
         # Fresh/new instance, case 1
         echo "${image_version}" > "${init_file_path}"
         upgrade_check_result=-1
@@ -370,6 +376,25 @@ if [ "$1" = './ignition-gateway' ]; then
         exit 1
     fi
 
+    # Collect any other declared wrapper custom options by checking if any of the environment
+    # variables are defined.  Ones that are defined will be added to the wrapper options.
+    declare -A WRAPPER_CUSTOM_OPTIONS=(
+        [WRAPPER_CONSOLE_FLUSH]=wrapper.console.flush
+        [WRAPPER_CONSOLE_LOGLEVEL]=wrapper.console.loglevel
+        [WRAPPER_CONSOLE_FORMAT]=wrapper.console.format
+        [WRAPPER_SYSLOG_LOGLEVEL]=wrapper.syslog.loglevel
+        [WRAPPER_SYSLOG_LOCAL_HOST]=wrapper.syslog.local.host
+        [WRAPPER_SYSLOG_REMOTE_HOST]=wrapper.syslog.remote.host
+        [WRAPPER_SYSLOG_REMOTE_PORT]=wrapper.syslog.remote.port
+    )
+    for opt in "${!WRAPPER_CUSTOM_OPTIONS[@]}"; do
+        if [ ! -z ${!opt} ]; then
+            WRAPPER_OPTIONS+=(
+                "${WRAPPER_CUSTOM_OPTIONS[$opt]}=${!opt}"
+            )
+        fi
+    done
+
     # Combine CMD array with wrapper and explicit java options
     if [ ! -z ${JAVA_OPTIONS:-} ]; then
         JAVA_OPTIONS=( "--" "${JAVA_OPTIONS[@]}" )
@@ -383,7 +408,7 @@ fi
 # Check for no Docker Init Complete file
 if [ "$1" = './ignition-gateway' ]; then
     # Check for Upgrade and Mark Initialization File
-    check_for_upgrade "/var/lib/ignition/data/.docker-init-complete"
+    check_for_upgrade "${IGNITION_INSTALL_LOCATION}/data/.docker-init-complete"
 
     if [ ${upgrade_check_result} -lt 0 ]; then
         # Only perform Provisioning on Fresh/New Instance

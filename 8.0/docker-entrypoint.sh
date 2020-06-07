@@ -130,7 +130,7 @@ health_check() {
 
     # Wait for a short period for the commissioning servlet to come alive
     for ((i=${delay};i>0;i--)); do
-        if curl -f http://localhost:8088/StatusPing 2>&1 | grep -c RUNNING > /dev/null; then   
+        if curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep -c RUNNING > /dev/null; then   
             break
         fi
         sleep 1
