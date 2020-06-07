@@ -70,13 +70,19 @@ RUN if [[ "${BUILD_EDITION}" == *"EDGE"* ]]; then \
       if [ $? = 1 ]; then sed -i "/^wrapper\.java\.additional\.${prev_index}/a wrapper.java.additional.$(( ${prev_index} + 1 ))=-Dedition=edge" /var/lib/ignition/data/ignition.conf; fi; \
     fi
 
+# Remove Serial Support Gateway Module if on ARMHF
+RUN set -exo pipefail; \
+    dpkg_arch="$(dpkg --print-architecture | awk '{print toupper($0)}')"; \
+    if [ "${dpkg_arch}" = "ARMHF" ]; then \
+        rm -f "user-lib/modules/Serial Support Gateway-module.modl"; \
+    fi
+
 # RUNTIME IMAGE
-FROM debian:buster-slim as final
+FROM 8-jre-hotspot as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
-RUN mkdir -p /usr/share/man/man1
-RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu openjdk-11-jre-headless
+RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
