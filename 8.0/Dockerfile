@@ -86,7 +86,7 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM ubuntu:latest as final
+FROM debian:buster-slim as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages

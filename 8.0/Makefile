@@ -1,6 +1,7 @@
 export SHELL=bash
 export IGNITION_VERSION=$$(set -eo pipefail; grep IGNITION_VERSION= Dockerfile | cut -d'=' -f 2- | sed 's/"//g')
 export IGNITION_VERSION_CHECK=if [ -z "$(IGNITION_VERSION)" ]; then exit 1; fi
+include ../.env
 
 .build: .build-full .build-edge
 .build-full:
@@ -35,9 +36,9 @@ export IGNITION_VERSION_CHECK=if [ -z "$(IGNITION_VERSION)" ]; then exit 1; fi
 	$(IGNITION_VERSION_CHECK)
 	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_EDGE -t $(BASE_IMAGE_NAME):nightly-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 
-
 push-registry:
 	@echo "======== PUSHING AND TAGGING IMAGES TO DOCKER HUB ========"
+	docker push $(BASE_IMAGE_NAME):$(IGNITION_VERSION)
 	docker tag $(BASE_IMAGE_NAME):$(IGNITION_VERSION) $(BASE_IMAGE_NAME):8.0
 	docker push $(BASE_IMAGE_NAME):8.0
 	docker tag $(BASE_IMAGE_NAME):$(IGNITION_VERSION) $(BASE_IMAGE_NAME):latest
