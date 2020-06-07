@@ -1,4 +1,4 @@
-# Options
+# Global Options
 include .env
 
 # Build Docker Images (Local)
@@ -8,7 +8,7 @@ include .env
 .build-8.0:
 	cd 8.0; make build;
 
-# Build and Push Multi-Arch Docker Image
+# Build and Push Multi-Arch Docker Image to Registry
 .multibuild: .multibuild-7.9 .multibuild-8.0
 .multibuild-7.9:
 	cd 7.9; make multibuild;

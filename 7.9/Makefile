@@ -1,6 +1,9 @@
 export SHELL=bash
+# The expression below ensures that an IGNITION_VERSION is defined in the Dockerfile
 export IGNITION_VERSION=$$(set -eo pipefail; grep IGNITION_VERSION= Dockerfile | cut -d'=' -f 2- | sed 's/"//g')
+# This version check leverages the above and aborts the build if not found
 export IGNITION_VERSION_CHECK=if [ -z "$(IGNITION_VERSION)" ]; then exit 1; fi
+# Pull in base options (if called from this directory)
 include ../.env
 
 .build: .build-full .build-edge
@@ -15,18 +18,18 @@ include ../.env
 
 .multibuild: .multibuild-full .multibuild-edge
 .multibuild-full:
-	@echo "======== BUILDING IGNITION FULL IMAGE AND PUSHING TO DOCKER HUB (MULTI ARCHITECTURE) ========"
+	@echo "======== BUILDING IGNITION FULL IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
 	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --tag $(BASE_IMAGE_NAME):7.9
 .multibuild-edge:
-	@echo "======== BUILDING IGNITION EDGE IMAGE AND PUSHING TO DOCKER HUB (MULTI ARCHITECTURE) ========"
+	@echo "======== BUILDING IGNITION EDGE IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
 	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION)-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --tag $(BASE_IMAGE_NAME):7.9-edge
 
 push-registry:
-	@echo "======== PUSHING AND TAGGING IMAGES TO DOCKER HUB ========"
+	@echo "======== PUSHING AND TAGGING IMAGES TO REGISTRY ========"
 	docker push $(BASE_IMAGE_NAME):$(IGNITION_VERSION)
 	docker tag $(BASE_IMAGE_NAME):$(IGNITION_VERSION) $(BASE_IMAGE_NAME):7.9
 	docker push $(BASE_IMAGE_NAME):7.9

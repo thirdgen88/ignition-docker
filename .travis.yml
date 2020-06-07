@@ -19,7 +19,8 @@ before_script:
   - echo $HUB_PASSWORD | docker login -u "$HUB_LOGIN" --password-stdin
 
 script:
-  - make multibuild-nightly
+  # Run multibuild and override BASE_IMAGE_NAME so that things flow to Docker Hub
+  - make multibuild-nightly BASE_IMAGE_NAME=kcollins/ignition
 
 branches:
   only:
