@@ -1,13 +1,5 @@
 # Options
-export DOCKER_CLI_EXPERIMENTAL=enabled
-export BASE_IMAGE_NAME=kcollins/ignition
-
-# Global Docker Build Args/Options
-export DOCKER_BUILD_OPTS=
-export DOCKER_BUILD_ARGS=
-
-# Architecture Definitions
-export DOCKER_MULTI_ARCH=linux/arm,linux/amd64
+include .env
 
 # Build Docker Images (Local)
 .build: .build-8.0
