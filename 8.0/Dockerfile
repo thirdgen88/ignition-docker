@@ -1,12 +1,14 @@
+# Ignition Version
+ARG IGNITION_VERSION="8.0.12"
+
 FROM ubuntu:latest AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
+ARG IGNITION_VERSION
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip
 
-# Ignition Version and Downloader Parameters
-ARG IGNITION_VERSION="8.0.12"
-
+# Ignition Downloader Parameters
 ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-linux-64-8.0.12.zip"
 ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="1ee93619a308d8dd9645089215876671f9a00c61e78fc1d2ea99e2f20a9cb5b9"
 ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-Edge-linux-64-8.0.12.zip"
@@ -85,16 +87,10 @@ RUN set -exo pipefail; \
         exit 1; \
     fi
 
-# Unpack common jar if necessary for compatibility with upgrader
-RUN common_jar="lib/core/common/common-${IGNITION_VERSION}.jar"; \
-    common_jar_pack="${common_jar}.pack.gz"; \
-    if [ ! -f "${common_jar}" -a -f "${common_jar_pack}" ]; then \
-      unpack200 "${common_jar_pack}" "${common_jar}"; \
-    fi
-
 # RUNTIME IMAGE
 FROM debian:buster-slim as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
+ARG IGNITION_VERSION
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu
@@ -137,6 +133,13 @@ ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 # Copy in Entrypoint and helper scripts
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY accept-gwnetwork.sh /usr/local/bin/
+
+# Unpack common jar if necessary for compatibility with upgrader
+RUN common_jar="lib/core/common/common-${IGNITION_VERSION}.jar"; \
+    common_jar_pack="${common_jar}.pack.gz"; \
+    if [ ! -f "${common_jar}" -a -f "${common_jar_pack}" ]; then \
+    unpack200 "${common_jar_pack}" "${common_jar}"; \
+    fi
 
 # Prepare Execution Settings
 ENTRYPOINT [ "docker-entrypoint.sh" ]

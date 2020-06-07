@@ -1,12 +1,14 @@
+# Ignition Version
+ARG IGNITION_VERSION="7.9.14"
+
 FROM ubuntu:latest AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
+ARG IGNITION_VERSION
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip
 
-# Ignition Version and Downloader Parameters
-ARG IGNITION_VERSION="7.9.14"
-
+# Ignition Downloader Parameters
 ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.14/20200428-1306/zip-installers/Ignition-linux-64-7.9.14.zip"
 ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="11fa890b4b1a8f980d2ad12a538a143233ee1dcdcb0a7215f5deab41867727b5"
 ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.14/20200428-1306/zip-installers/Ignition-linux-64-7.9.14.zip"
@@ -80,6 +82,7 @@ RUN set -exo pipefail; \
 # RUNTIME IMAGE
 FROM adoptopenjdk:8-jre-hotspot as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
+ARG IGNITION_VERSION
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu
