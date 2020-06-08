@@ -20,13 +20,13 @@ include ../.env
 .multibuild-full:
 	@echo "======== BUILDING IGNITION FULL IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
+	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --tag $(BASE_IMAGE_NAME):8.0
 	docker buildx imagetools create $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --tag $(BASE_IMAGE_NAME):latest
 .multibuild-edge:
 	@echo "======== BUILDING IGNITION EDGE IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION)-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
+	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION)-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --tag $(BASE_IMAGE_NAME):8.0-edge
 	docker buildx imagetools create $(BASE_IMAGE_NAME):$(IGNITION_VERSION) --tag $(BASE_IMAGE_NAME):latest-edge
 
@@ -34,11 +34,11 @@ include ../.env
 .multibuild-nightly-full:
 	@echo "======== BUILDING IGNITION FULL NIGHTLY IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_FULL -t $(BASE_IMAGE_NAME):nightly --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
+	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_FULL -t $(BASE_IMAGE_NAME):nightly --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 .multibuild-nightly-edge:
 	@echo "======== BUILDING IGNITION EDGE NIGHTLY IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker buildx build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_EDGE -t $(BASE_IMAGE_NAME):nightly-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
+	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_EDGE -t $(BASE_IMAGE_NAME):nightly-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 
 push-registry:
 	@echo "======== PUSHING AND TAGGING IMAGES TO REGISTRY ========"

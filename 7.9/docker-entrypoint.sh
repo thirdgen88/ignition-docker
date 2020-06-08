@@ -460,16 +460,16 @@ if [ "$1" = './ignition-gateway' ]; then
             stop_process $pid
 
             # Link Additional Modules and prepare Ignition database
-            register_modules ${GATEWAY_MODULE_RELINK}
+            register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
 
             # Link Additional JDBC Drivers and prepare Ignition database
-            register_jdbc ${GATEWAY_JDBC_RELINK}
+            register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         fi
 
         echo 'Starting Ignition Gateway...'
     else
-        register_modules ${GATEWAY_MODULE_RELINK}
-        register_jdbc ${GATEWAY_JDBC_RELINK}
+        register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+        register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     fi
 fi
 
