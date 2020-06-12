@@ -4,7 +4,11 @@ services:
   - docker
 
 env:
-  - DOCKER_CLI_EXPERIMENTAL=enabled
+  global:
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+  matrix:
+    - BUILD_TARGET=.multibuild-7.9 DOCKER_MULTI_ARCH=linux/amd64
+    - BUILD_TARGET=.multibuild-8.0 DOCKER_MULTI_ARCH=linux/arm,linux/amd64
 
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
@@ -20,7 +24,7 @@ before_script:
 
 script:
   # Run multibuild and override BASE_IMAGE_NAME so that things flow to Docker Hub
-  - make multibuild-nightly BASE_IMAGE_NAME=kcollins/ignition
+  - travis_wait 30 make ${BUILD_TARGET} BASE_IMAGE_NAME=kcollins/ignition DOCKER_MULTI_ARCH=${DOCKER_MULTI_ARCH}
 
 branches:
   only:

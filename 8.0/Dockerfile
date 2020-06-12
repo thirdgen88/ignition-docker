@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="8.0.12"
+ARG IGNITION_VERSION="8.0.13"
 
 # Default Build Edition - FULL, EDGE, NIGHTLY_FULL, or NIGHTLY_EDGE
 ARG BUILD_EDITION="FULL"
@@ -13,23 +13,23 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-linux-64-8.0.12.zip"
-ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="1ee93619a308d8dd9645089215876671f9a00c61e78fc1d2ea99e2f20a9cb5b9"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-Edge-linux-64-8.0.12.zip"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="9b161bbeb01c8f518e6300f6a64993a42755816e1b5c9bd563fb23cf7f0b40d3"
-ARG IGNITION_NIGHTLY_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-linux-64-8.0.14-SNAPSHOT.zip"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.13/20200608-1524/Ignition-linux-64-8.0.13.zip"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="c8f0eb908695c66b63c93bae35910c733f516d035999e1ccee5592821712069b"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.13/20200608-1524/Ignition-Edge-linux-64-8.0.13.zip"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="1b33e79513f369b69c33747d750d35a6c59f6fc176685828b201c34e88a8570f"
+ARG IGNITION_NIGHTLY_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.15-SNAPSHOT/Ignition-linux-64-8.0.15-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_FULL_AMD64_DOWNLOAD_SHA256="notused"
-ARG IGNITION_NIGHTLY_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-Edge-linux-64-8.0.14-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.15-SNAPSHOT/Ignition-Edge-linux-64-8.0.15-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_EDGE_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-linux-armhf-8.0.12.zip"
-ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="7e9aba6cf155e52a3aaa5b2322a810c8e500ec62270b84a3fe197e9bc1507cca"
-ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.12/20200421-1530/Ignition-Edge-linux-armhf-8.0.12.zip"
-ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="f56e0702479e4d1084966691263f971c9d1ec9a62a7e94e63409fed689ad6111"
-ARG IGNITION_NIGHTLY_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-linux-armhf-8.0.14-SNAPSHOT.zip"
+ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.13/20200608-1524/Ignition-linux-armhf-8.0.13.zip"
+ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="5409702a685e6d1685bb6114f974033353dd6a3646ab15232097fda9cb44d5d0"
+ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.13/20200608-1524/Ignition-Edge-linux-armhf-8.0.13.zip"
+ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="059b0ede7d2797a2806662a1bf3bc4e6c42e2cb030aba20242823c4cb2456a60"
+ARG IGNITION_NIGHTLY_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.15-SNAPSHOT/Ignition-linux-armhf-8.0.15-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_FULL_ARMHF_DOWNLOAD_SHA256="notused"
-ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-Edge-linux-armhf-8.0.14-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.15-SNAPSHOT/Ignition-Edge-linux-armhf-8.0.15-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 
@@ -139,20 +139,13 @@ ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY accept-gwnetwork.sh /usr/local/bin/
 
-# Unpack common jar if necessary for compatibility with upgrader
-RUN common_jar="lib/core/common/common-${IGNITION_VERSION}.jar"; \
-    common_jar_pack="${common_jar}.pack.gz"; \
-    if [ ! -f "${common_jar}" -a -f "${common_jar_pack}" ]; then \
-    unpack200 "${common_jar_pack}" "${common_jar}"; \
-    fi
-
 # Prepare Execution Settings
 ENTRYPOINT [ "docker-entrypoint.sh" ]
 CMD [ "./ignition-gateway" \
     , "data/ignition.conf" \
-    , "wrapper.syslog.ident=Ignition Gateway" \
-    , "wrapper.pidfile=./Ignition Gateway.pid" \
-    , "wrapper.name=Ignition Gateway" \
+    , "wrapper.syslog.ident=Ignition-Gateway" \
+    , "wrapper.pidfile=./Ignition-Gateway.pid" \
+    , "wrapper.name=Ignition-Gateway" \
     , "wrapper.displayname=Ignition-Gateway" \
-    , "wrapper.statusfile=./Ignition Gateway.status" \
-    , "wrapper.java.statusfile=./Ignition Gateway.java.status" ]  
+    , "wrapper.statusfile=./Ignition-Gateway.status" \
+    , "wrapper.java.statusfile=./Ignition-Gateway.java.status" ]  

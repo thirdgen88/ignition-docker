@@ -384,7 +384,12 @@ compare_versions() {
 check_for_upgrade() {
     local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
     local init_file_path="$1"
-    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2)
+    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
+
+    # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
+    if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
+        image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
+    fi
 
     if [ ! -d "${IGNITION_INSTALL_LOCATION}/data/temp" ]; then
         echo "Creating extra temp folder within data volume"
@@ -408,7 +413,7 @@ check_for_upgrade() {
             1 | 2)
                 # Init file present, upgrade required
                 echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
-                java -classpath "lib/core/common/common-${image_version}.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . /var/lib/ignition/data /var/log/ignition file=ignition.conf
+                java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
                 if [ ${version_check} -eq 1 ]; then 

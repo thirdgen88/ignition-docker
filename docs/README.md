@@ -1,7 +1,7 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.0.12`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
-* [`8.0.12-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.13`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.13-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`nightly`, `nightly-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.0/Dockerfile)
 * [`7.9.14`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.14-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
@@ -14,7 +14,7 @@
 Kevin Collins (independent Ignition enthusiast)
 
 * **Supported architectures**:
-`amd64`, `armhf`
+`amd64`, `armhf` ([More Info](#Multi-Architecture%20Builds))
 
 * **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
@@ -283,6 +283,12 @@ To set the gateway timezone, simply add a `TZ` environment variable to the conta
         -d kcollins/ignition:latest
 
 Once the gateway starts, you should be able to see the designated local time in the _Environment_ section of the Gateway Status Overview Webpage.
+
+## Multi-Architecture Builds
+
+The 8.0 image now supports both `arm64` and `armhf` architectures.  This means you can now run the Ignition or Ignition Edge containers on your Raspberry Pi (among other ARM-based devices).  They've only been tested on 32-bit builds of Raspberry Pi OS, but should work well on other 32-bit ARM platforms.  Use the same image tags you use normally--it will automatically pull the image appropriate for your architecture from Docker Hub.  
+
+> **NOTE:** Regarding the Ignition 7.9.x branch, there is currently an issue with the AdoptOpenJDK JDK8 build that we're using that leaves the JVM without a JIT compiler and reduces performance significantly when running on aarch32/armhf.  Track that issue [here](https://github.com/AdoptOpenJDK/openjdk-build/issues/1531).  Once it is resolved and performance is normal, I'll enable the `armhf` build for `kcollins/ignition:7.9`.  The 8.0 image uses JDK11 and is unaffected by this particular issue.
 
 ## License
 

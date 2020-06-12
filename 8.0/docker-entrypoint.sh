@@ -321,7 +321,7 @@ register_modules() {
         local module_basename=$(basename "${module}")
         local module_sourcepath=${module}
         local module_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/modules/${module_basename}"
-        local keytool="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre-nix/bin/keytool"
+        local keytool=$(which keytool)
 
         if [ -h "${module_destpath}" ]; then
             echo "Skipping Linked Module: ${module_basename}"
@@ -438,7 +438,7 @@ check_for_upgrade() {
     local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
 
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
-    if [[ ${BUILD_EDITION} != *"NIGHTLY"* ]]; then
+    if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
         image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
     fi
 
