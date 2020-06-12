@@ -1,9 +1,13 @@
 # Ignition Version
 ARG IGNITION_VERSION="8.0.12"
 
+# Default Build Edition - FULL, EDGE, NIGHTLY_FULL, or NIGHTLY_EDGE
+ARG BUILD_EDITION="FULL"
+
 FROM ubuntu:latest AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
+ARG BUILD_EDITION
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip
@@ -28,9 +32,6 @@ ARG IGNITION_NIGHTLY_FULL_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.14-SNAPSHOT/Ignition-Edge-linux-armhf-8.0.14-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_EDGE_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
-
-# Default Build Edition - FULL, EDGE, NIGHTLY_FULL, or NIGHTLY_EDGE
-ARG BUILD_EDITION="FULL"
 
 # Retrieve Ignition Installer and Perform Ignition Installation
 ENV INSTALLER_PATH /root
@@ -91,6 +92,10 @@ RUN set -exo pipefail; \
 FROM debian:buster-slim as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
+ARG BUILD_EDITION
+
+# Capture BUILD_EDITION into environment variable
+ENV BUILD_EDITION ${BUILD_EDITION:-FULL}
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu

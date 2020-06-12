@@ -10,6 +10,7 @@ JAVA_OPTIONS=( )
 GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
+GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
 
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
@@ -222,6 +223,83 @@ register_jdbc() {
     done
 }
 
+# usage enable_disable_modules MODULES_ENABLED
+#   ie: enable_disable_modules vision,opc-ua,sql-bridge
+enable_disable_modules() {
+	local MODULES_ENABLED="${1}"
+
+	if [ "${MODULES_ENABLED}" = "all" ]; then return 0; fi
+
+	echo -n "Processing Module Enable/Disable... "
+
+	# Perform removal of built-in modules
+	declare -A module_definition_mappings
+	module_definition_mappings["Alarm Notification-module.modl"]="alarm-notification"
+	module_definition_mappings["Allen-Bradley Drivers-module.modl"]="allen-bradley-drivers"
+	module_definition_mappings["DNP3-Driver.modl"]="dnp3-driver"
+	module_definition_mappings["Enterprise Administration-module.modl"]="enterprise-administration"
+	module_definition_mappings["Logix Driver-module.modl"]="logix-driver"
+	module_definition_mappings["Mobile-module.modl"]="mobile-module"
+	module_definition_mappings["Modbus Driver v2-module.modl"]="modbus-driver-v2"
+	module_definition_mappings["Omron-Driver.modl"]="omron-driver"
+	module_definition_mappings["OPC-UA-module.modl"]="opc-ua"
+	module_definition_mappings["Perspective-module.modl"]="perspective"
+	module_definition_mappings["Reporting-module.modl"]="reporting"
+	module_definition_mappings["Serial Support Client-module.modl"]="serial-support-client"
+	module_definition_mappings["Serial Support Gateway-module.modl"]="serial-support-gateway"
+	module_definition_mappings["SFC-module.modl"]="sfc"
+	module_definition_mappings["Siemens Drivers-module.modl"]="siemens-drivers"
+	module_definition_mappings["SMS Notification-module.modl"]="sms-notification"
+	module_definition_mappings["SQL Bridge-module.modl"]="sql-bridge"
+	module_definition_mappings["Symbol Factory-module.modl"]="symbol-factory"
+	module_definition_mappings["Tag Historian-module.modl"]="tag-historian"
+	module_definition_mappings["UDP and TCP Drivers-module.modl"]="udp-tcp-drivers"
+	module_definition_mappings["User Manual-module.modl"]="user-manual"
+	module_definition_mappings["Vision-module.modl"]="vision"
+	module_definition_mappings["Voice Notification-module.modl"]="voice-notification"
+	module_definition_mappings["Web Browser Module.modl"]="web-browser"
+	module_definition_mappings["Web Developer Module.modl"]="web-developer"
+
+	# Create modules-disabled directory if doesn't already exist
+	modules_path="${IGNITION_INSTALL_LOCATION}/user-lib/modules"
+	modules_disabled_path="${IGNITION_INSTALL_LOCATION}/user-lib/modules-disabled"
+	if [ ! -d "${modules_disabled_path}" ]; then
+		mkdir -p "${modules_disabled_path}"
+	fi
+
+	# Read an array modules_enabled with the list of enabled module definitions
+	mapfile -d , -t modules_enabled <<< "$GATEWAY_MODULES_ENABLED"
+
+	# Find the currently present modules in the installation
+	mapfile -t modules_list < <(find "${modules_path}" -name '*.modl' -type f -printf "%f\n")
+
+	for module_filename in "${modules_list[@]}"; do
+		module_filepath="${modules_path}/${module_filename}"
+		module_definition="${module_definition_mappings[${module_filename}]}"
+
+		if [ -z "${module_definition}" ]; then
+			printf "\n  Unknown module ${module_filename}, skipping..."
+			continue
+		fi
+		
+		# Search for Module Definition in List of Modules Enabled
+		module_found=0
+		for (( n=0; n<${#modules_enabled[@]}; n++ )); do
+			if [ ${module_definition} = ${modules_enabled[$n]} ]; then
+				module_found+=1
+				break
+			fi
+		done
+		
+		# If we didn't find it, move to disabled path
+		if [ ${module_found} -eq 0 ]; then
+			printf "\n  Disabling '${module_filename}'"
+			mv "${module_filepath}" "${modules_disabled_path}/"
+		fi
+	done
+	echo
+}
+
 # usage register_modules RELINK_ENABLED DB_LOCATION
 #   ie: register_modules true /var/lib/ignition/data/db/config.idb
 register_modules() {
@@ -357,8 +435,12 @@ compare_versions() {
 check_for_upgrade() {
     local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
     local init_file_path="$1"
+    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
+
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
-    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 | sed "s/-SNAPSHOT$//" )
+    if [[ ${BUILD_EDITION} != *"NIGHTLY"* ]]; then
+        image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
+    fi
 
     if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
         # Fresh/new instance, case 1
@@ -501,7 +583,7 @@ if [ "$1" = './ignition-gateway' ]; then
         else
             export GATEWAY_RESTORE_REQUIRED="0"
         fi
-
+    
         # Gateway Restore
         if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
             # Accumulate Gateway Command Utility Options
@@ -554,11 +636,15 @@ if [ "$1" = './ignition-gateway' ]; then
             stop_process $pid
         fi
 
-        echo 'Starting Ignition Gateway...'
     else
         register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     fi
+
+    # Perform module enablement/disablement
+    enable_disable_modules ${GATEWAY_MODULES_ENABLED}
+
+    echo 'Starting Ignition Gateway...'
 fi
 
 exec "${CMD[@]}"

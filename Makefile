@@ -7,6 +7,8 @@ include .env
 	cd 7.9; make build;
 .build-8.0:
 	cd 8.0; make build;
+.build-nightly:
+	cd 8.0; make build-nightly;
 
 # Build and Push Multi-Arch Docker Image to Registry
 .multibuild: .multibuild-7.9 .multibuild-8.0
@@ -20,5 +22,6 @@ include .env
 # Summary Targets
 all: build
 build: .build
+build-nightly: .build-nightly
 multibuild: .multibuild
 multibuild-nightly: .multibuild-nightly

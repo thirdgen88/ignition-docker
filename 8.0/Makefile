@@ -14,7 +14,17 @@ include ../.env
 .build-edge:
 	@echo "======== BUILDING IGNITION EDGE IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION)-edge -f Dockerfile .	
+	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t $(BASE_IMAGE_NAME):$(IGNITION_VERSION)-edge -f Dockerfile .
+
+.build-nightly: .build-nightly-full .build-nightly-edge
+.build-nightly-full:
+	@echo "======== BUILDING IGNITION FULL NIGHTLY IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"
+	$(IGNITION_VERSION_CHECK)
+	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_FULL -t $(BASE_IMAGE_NAME):nightly -f Dockerfile .
+.build-nightly-edge:
+	@echo "======== BUILDING IGNITION EDGE NIGHTLY IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"
+	$(IGNITION_VERSION_CHECK)
+	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY_EDGE -t $(BASE_IMAGE_NAME):nightly-edge -f Dockerfile .
 
 .multibuild: .multibuild-full .multibuild-edge
 .multibuild-full:
@@ -49,5 +59,6 @@ push-registry:
 	docker push $(BASE_IMAGE_NAME):latest
 
 build: .build
+build-nightly: .build-nightly
 multibuild: .multibuild
 multibuild-nightly: .multibuild-nightly

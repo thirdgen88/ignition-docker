@@ -21,7 +21,7 @@ ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/rele
 ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="65102a0d9f1460d457be89e3414b214cb4389bafc215609dc6bf66fbf2d9b405"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 
-# Default Build Edition - FULL, EDGE, NIGHTLY_FULL, or NIGHTLY_EDGE
+# Default Build Edition - FULL, EDGE
 ARG BUILD_EDITION="FULL"
 
 # Retrieve Ignition Installer and Perform Ignition Installation
