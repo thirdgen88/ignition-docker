@@ -5,8 +5,6 @@
 * [`nightly`, `nightly-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.0/Dockerfile)
 * [`7.9.14`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.14-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
-* [`7.8.5`, `7.8` (7.8/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.8/Dockerfile)
-* [`7.7.10`, `7.7` (7.7/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.7/Dockerfile)
 
 ## Quick Reference
 
@@ -16,7 +14,7 @@
 Kevin Collins (independent Ignition enthusiast)
 
 * **Supported architectures**:
-`amd64`
+`amd64`, `armhf`
 
 * **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
@@ -70,7 +68,7 @@ _New 8.0.x options added on 2019-04-27!_
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
 
 <!-- markdownlint-disable MD036 -->
-_Table 1 - General Configurability_
+### _Table 1 - General Configurability_
 <!-- markdownlint-enable MD036 -->
 
 For Ignition 8.x, you _must_ specify either `GATEWAY_ADMIN_PASSWORD` or `GATEWAY_RANDOM_ADMIN_PASSWORD` on container launch.  This will only affect the initial credentials for the gateway.  When restoring from a backup, the admin credentials specified through these environment variables will be set on initial restore, overriding the existing credentials from the gateway backup file.
@@ -96,7 +94,7 @@ Variable                           | Description                                
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
 <!-- markdownlint-disable MD036 -->
-_Table 2 - Gateway Network Provisioning_
+### _Table 2 - Gateway Network Provisioning_
 <!-- markdownlint-enable MD036 -->
 
 Variable                       | Default | Description                                                          |
@@ -114,7 +112,7 @@ Creating an Ignition Gateway with the gateway name `spoke1` and a single outboun
     $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_SYSTEM_NAME=spoke1 -e GATEWAY_NETWORK_0_HOST=10.11.12.13 -d kcollins/ignition:7.9.10
 
 <!-- markdownlint-disable MD036 -->
-_Table 3 - Logging Configurability_
+### _Table 3 - Logging Configurability_
 <!-- markdownlint-enable MD036 -->
 
 The Java Wrapper that Ignition uses has some specific configuration variables for logging that can be useful to adjust.  See the [Logging Configuration Properties](https://wrapper.tanukisoftware.com/doc/english/props-logging.html) documentation for the wrapper for more detailed information on some of these settings.
@@ -130,6 +128,18 @@ Variable                       | Default | Description                          
 `WRAPPER_SYSLOG_LOCAL_HOST`    | _not overridden_ | Set the local host name reported in the remote syslog packets [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-local-host.html)
 `WRAPPER_SYSLOG_REMOTE_HOST`   | _not overridden_ | Specify the remote syslog server to send logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-host.html)
 `WRAPPER_SYSLOG_REMOTE_PORT`   | _not overridden_ | Specify the UDP port on which to transmit syslog logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-port.html)
+
+<!-- markdownlint-disable MD036 -->
+### _Table 4 - Module Enable/Disable_
+<!-- markdownlint-enable MD036 -->
+
+_Added to the image as of 8.0.13!_
+
+See the section _How to enable/disable default modules_ further on in the documentation for more specifics on this feature.
+
+Variable                       | Default | Description                                                          |
+------------------------------ | ------- | -------------------------------------------------------------------- |
+`GATEWAY_MODULES_ENABLED` | `all` | Comma-delimited list of modules (if not `all`) that should be enabled on Gateway start |
 
 ## Connect to your Ignition instance
 
@@ -173,6 +183,48 @@ Getting a volume created is as simple as using a `-v` flag when starting your co
 This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition/data` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
 
 _NOTE_: If you need to integrate third-party modules, see below.  If you need to integrate custom python files directly into `/var/lib/ignition/user-lib/pylib`, you can bind-mount a directory under there.  
+
+## How to enable/disable default modules
+
+_New with latest 7.9.14 and 8.0.13 images as of 2020-06-12!_
+
+_Table 4_ above mentions the environment variable `GATEWAY_MODULES_ENABLED`, that can be used to specify default Ignition modules that will enabled at Gateway startup.  If you override the default value of `all`, any other modules other than the ones you specify will be moved to a `modules-disabled` folder in the container and ignored on Gateway startup.  See the table below for the correlations between module designations that you can supply and the default module filenames that will be matched (and thusly remain enabled):
+
+Module Definition | Module Filename
+----------------- | ------------------------
+`alarm-notification` | Alarm Notification-module.modl
+`allen-bradley-drivers` | Allen-Bradley Drivers-module.modl
+`dnp3-driver` | DNP3-Driver.modl
+`enterprise-administration` | Enterprise Administration-module.modl
+`logix-driver` | Logix Driver-module.modl
+`mobile-module` | Mobile-module.modl
+`modbus-driver-v2` | Modbus Driver v2-module.modl
+`omron-driver` | Omron-Driver.modl
+`opc-ua` | OPC-UA-module.modl
+`perspective` | Perspective-module.modl
+`reporting` | Reporting-module.modl
+`serial-support-client` | Serial Support Client-module.modl
+`serial-support-gateway` | Serial Support Gateway-module.modl
+`sfc` | SFC-module.modl
+`siemens-drivers` | Siemens Drivers-module.modl
+`sms-notification` | SMS Notification-module.modl
+`sql-bridge` | SQL Bridge-module.modl
+`symbol-factory` | Symbol Factory-module.modl
+`tag-historian` | Tag Historian-module.modl
+`udp-tcp-drivers` | UDP and TCP Drivers-module.modl
+`user-manual` | User Manual-module.modl
+`vision` | Vision-module.modl
+`voice-notification` | Voice Notification-module.modl
+`web-browser` | Web Browser Module.modl
+`web-developer` | Web Developer Module.modl
+
+You can now specify a default set of enabled modules (all others not specified will be disabled/unavailable) like below, order is not important:
+
+    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition/data \
+        -e GATEWAY_ADMIN_PASSWORD=password \
+        -e GATEWAY_MODULES_ENABLED=vision,opc-ua,logix-driver,sql-bridge
+
+Combine this and the guidance below regarding third-party modules to declare a truly custom gateway outlay per your requirements!
 
 ## How to integrate third party modules
 
