@@ -39,8 +39,8 @@ include ../.env
 	@echo "======== BUILDING IGNITION EDGE IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
 	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
-	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --tag ${BASE_IMAGE_NAME}:8.0-edge
-	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --tag ${BASE_IMAGE_NAME}:latest-edge
+	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge --tag ${BASE_IMAGE_NAME}:8.0-edge
+	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge --tag ${BASE_IMAGE_NAME}:latest-edge
 
 .multibuild-nightly: .multibuild-nightly-full .multibuild-nightly-edge
 .multibuild-nightly-full: CACHE_TAG=cache-nightly
