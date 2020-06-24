@@ -1,7 +1,6 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.0.13`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
-* [`8.0.13-edge`, `8.0-edge`, `latest-edge`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.14`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`nightly`, `nightly-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.0/Dockerfile)
 * [`7.9.14`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.14-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
@@ -26,27 +25,62 @@ Ignition is a SCADA software platform made by [Inductive Automation](http://indu
 
 For more information on Inductive Automation and the Ignition Platform, please visit [www.inductiveautomation.com](https://www.inductiveautomation.com).
 
-![Ignition Logo Dark](https://inductiveautomation.com/static/images/logo_ignition_lg.png)
-
 ## How to use this image
 
 The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  If you wish to explore other deployment scenarios, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo for multi-container Docker Compose examples.
 
-## Start an `ignition` gateway instance
+## Start an **Ignition** gateway instance
+
+<img style="width: 256px" src="https://inductiveautomation.com/static/images/logo_ignition_lg.png">
 
 You can start an instance of Ignition in its own container as below:
 
-    $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_ADMIN_PASSWORD=password -d kcollins/ignition:tag
+    $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_ADMIN_PASSWORD=password -e IGNITION_EDITION=full -d kcollins/ignition:tag
 
-... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for available tags.  _NOTE: GATEWAY_ADMIN_PASSWORD is a new field for Ignition 8.0 and the gateway commissioning process.  See the table below in container customization for more information_
+... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for current image tags.  _NOTE: GATEWAY_ADMIN_PASSWORD is a new field for Ignition 8.0 and the gateway commissioning process.  See the table below in container customization for more information_
 
-## Start an `ignition-edge` gateway instance
+## Start an **Ignition Edge** gateway instance
 
-If you want to run the Ignition Edge variant, simply use the `-edge` suffix on the desired tag:
+<img style="width: 512px" src="https://cdn-assets-cloud.frontify.com/local/frontify/eyJwYXRoIjoiXC9wdWJsaWNcL3VwbG9hZFwvc2NyZWVuc1wvMTAzMTg3XC8wMDE4ZjA1MWQwNTA1NDgxMDlkMWE4MWUzNzQ3YzIzNS0xNTIzOTAwMzA2LnBuZyJ9:frontify:2rbAMJku64qLa_RBlLSDV8GnNRCHxrfDPi77sZ2FkoQ?width=2400">
 
-    $ docker run -p 8088:8088 --name my-ignition-edge -e GATEWAY_ADMIN_PASSWORD=password -d kcollins/ignition:tag-edge
+_New/Updated with Ignition 8.0.14 as of 2020-06-24_
 
-The `tag` would be replaced with the version, so your resultant image name might be something like `kcollins/ignition:7.9.7-edge`.
+If you want to run the Ignition Edge variant, simply supply `IGNITION_EDITION=edge` as an environment variable against the same image:
+
+    $ docker run -p 8088:8088 --name my-ignition-edge -e GATEWAY_ADMIN_PASSWORD=password -e IGNITION_EDITION=edge -d kcollins/ignition:8.0.14
+
+For older versions (prior to 8.0.14), you can specify the image format with a `-edge` suffix, e.g. `kcollins/ignition:8.0.13-edge`
+
+## Start an **Ignition Maker Edition** gateway instance
+
+<img style="width: 256px" src="https://inductiveautomation.com/static/images/maker-edition/ignitionmakeredition-logo-primary.png">
+
+_New with Ignition 8.0.14 as of 2020-06-24_
+
+If you want to run the Ignition Maker Edition variant, supply some additional environment variables with the container launch.  You'll need to acquire a _Maker Edition_ license from Inductive Automation to use this image variant.  More information [here](https://inductiveautomation.com/ignition/maker-edition).
+
+- `IGNITION_EDITION=maker` - Specifies Maker Edition
+- `IGNITION_LICENSE_KEY=ABCD_1234` - Supply your license key
+- `IGNITION_ACTIVATION_TOKEN=xxxxxxx` - Supply your activation token
+
+Run the container with these extra environment variables:
+
+    $ docker run -p 8088:8088 --name my-ignition-maker -e GATEWAY_ADMIN_PASSWORD=password \
+        -e IGNITION_EDITION=maker \ 
+        -e IGNITION_LICENSE_KEY=ABCD_1234 \
+        -e IGNITION_ACTIVATION_TOKEN=asdfghjkl \
+        -d kcollins/ignition:8.0.14
+
+You can also place the activation token and/or license key in a file that is either integrated with Docker Secrets (via Docker Compose or Swarm) or simply bind-mounted into the container.  Appending `_FILE` to the environment variables causes the value to be read in from the declared file location.  If we have a file containing our activation token named `activation-token`, we can run the container like below:
+
+    $ docker run -p 8088:8088 --name my-ignition-maker -e GATEWAY_ADMIN_PASSWORD=password \
+        -e IGNITION_EDITION=maker \
+        -e IGNITION_LICENSE_KEY=ABCD_1234 \
+        -v /path/to/activation-token:/activation-token \
+        -e IGNITION_ACTIVATION_TOKEN_FILE=/activation-token \
+        -d kcollins/ignition:8.0.14
+
+Keep in mind that you should consider [preserving your gateway data](#How-to-persist-Gateway-data) in a volume as well.  Additionally, all [container customizations](#Container-Customization) are supported in all editions/variants, including Maker Edition.
 
 ## Restore an existing gateway backup on container startup
 
@@ -84,12 +118,15 @@ Variable                           | Description                                
 `GATEWAY_ADMIN_PASSWORD`           | Gateway Admin Password _only for > 8.0.0_
 `GATEWAY_RANDOM_ADMIN_PASSWORD`    | Set to `1` to generate random Gateway Admin Password _only for > 8.0.0_
 `GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
-`GATEWAY_HTTPS_PORT`                | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
+`GATEWAY_HTTPS_PORT`               | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
 `GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
 `GATEWAY_JDBC_RELINK`              | Set to `true` to allow replacement of built-in JDBC drivers
 `GATEWAY_RESTORE_DISABLED`         | Set to `1` to perform gateway restore in disabled mode.
 `IGNITION_STARTUP_DELAY`           | Defaults to `60`, increase to allow for more time for initial gateway startup
 `IGNITION_COMMISSIONING_DELAY`     | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
+`IGNITION_EDITION`                 | Defaults to `FULL`, choose `FULL`, `EDGE`, or `MAKER` to set the Ignition Gateway type on initial launch
+`IGNITION_ACTIVATION_TOKEN`        | Token for automated gateway licensing/activation. **Required for _Maker_ edition.**
+`IGNITION_LICENSE_KEY`             | License Key for automated gateway licensing/activation. **Required for _Maker edition.**
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -296,6 +333,7 @@ For licensing information, consult the following links:
 
 * OpenJDK Licensing (base image for 7.9 and below) - http://openjdk.java.net/legal/gplv2+ce.html
 * Ignition License - https://inductiveautomation.com/ignition/license
+* Ignition Maker Edition - **free ONLY for personal and non-commercial use**, see license link above
 
 As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).  The use of third-party modules requires reviewing the related licensing information, as module EULAs are accepted automatically on the user's behalf.
 

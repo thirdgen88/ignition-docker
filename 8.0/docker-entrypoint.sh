@@ -11,6 +11,7 @@ GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
+IGNITION_EDITION=$(echo ${IGNITION_EDITION:-FULL} | awk '{print tolower($0)}')
 
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
@@ -78,17 +79,62 @@ file_env() {
 	unset "$fileVar"
 }
 
+# usage: evaluate_post_request URL PAYLOAD EXPECTED_CODE PHASE DESC
+#   ie: evaluate_post_request http://localhost:8088/post-step '{"id":"edition","step":"edition","data":{"edition":"'maker'"}}' 201 "Commissioning" "Edition Selection"
+evaluate_post_request() {
+    local url="$1"
+    local payload="$2"
+    local expected_code="$3"
+    local phase="$4"
+    local desc="$5"
+
+    local response_output_file=$(mktemp)
+    local response_output=$(curl -o ${response_output_file} -i -H "content-type: application/json" -d "${payload}" "${url}" 2>&1)
+    local response_code_final=$(cat ${response_output_file} | grep -Po '(?<=^HTTP/1\.1 )([0-9]+)' | tail -n 1)
+
+    if [ -z "${response_code_final}" ]; then
+        response_code_final="NO HTTP RESPONSE DETECTED"
+    fi
+
+    if [ "${response_code_final}" != "${expected_code}" ]; then
+        echo >&2 "ERROR: Unexpected Response (${response_code_final}) during ${phase} phase: ${desc}"
+        cat >&2 ${response_output_file}
+        exit 1
+    else
+        # Cleanup temp file
+        if [ -e "${response_output_file}" ]; then rm "${response_output_file}"; fi
+    fi
+}
+
 # usage: perform_commissioning URL RESTORE_FLAG
 #   ie: perform_commissioning http://localhost:8088/post-step 1
 perform_commissioning() {
     local url="$1"
     local restore_flag_value="$2"
+    local phase="Commissioning"
 
     echo "Performing commissioning actions..."
 
+    # Select Edition - Full, Edge, Maker
+    if [ "${restore_flag_value}" = 0 ]; then
+        local edition_selection="${IGNITION_EDITION}"
+        if [ "${IGNITION_EDITION}" == "full" ]; then edition_selection=""; fi
+        local edition_selection_payload='{"id":"edition","step":"edition","data":{"edition":"'${edition_selection}'"}}'
+        evaluate_post_request "${url}" "${edition_selection_payload}" 201 "${phase}" "Edition Selection"
+        echo "  IGNITION_EDITION: ${IGNITION_EDITION}"
+    fi
+
     # Register EULA Acceptance
     local license_accept_payload='{"id":"license","step":"eula","data":{"accept":true}}'
-    curl -H "Content-Type: application/json" -d "${license_accept_payload}" ${url} > /dev/null 2>&1
+    evaluate_post_request "${url}" "${license_accept_payload}" 201 "${phase}" "License Acceptance"
+    echo "  EULA_STATUS: accepted"
+    
+    # Perform Activation (currently only for Maker edition)
+    if [ ${IGNITION_EDITION} == "maker" ]; then
+        local activation_payload='{"id":"activation","data":{"licenseKey":"'${IGNITION_LICENSE_KEY}'","activationToken":"'${IGNITION_ACTIVATION_TOKEN}'"}}'
+        evaluate_post_request "${url}" "${activation_payload}" 201 "${phase}" "Online Activation"
+        echo "  IGNITION_LICENSE_KEY: ${IGNITION_LICENSE_KEY}"
+    fi
 
     # Register Authentication Details
     if [ ${upgrade_check_result} -eq -1 ]; then
@@ -97,7 +143,7 @@ perform_commissioning() {
         local auth_pwhash=$(echo -en ${GATEWAY_ADMIN_PASSWORD}${auth_salt} | sha256sum - | cut -c -64)
         local auth_password="[${auth_salt}]${auth_pwhash}"
         local auth_payload='{"id":"authentication","step":"authSetup","data":{"username":"'${auth_user}'","password":"'${auth_password}'"}}'
-        curl -H "Content-Type: application/json" -d "${auth_payload}" ${url} > /dev/null 2>&1
+        evaluate_post_request "${url}" "${auth_payload}" 201 "${phase}" "Configuring Authentication"
 
         echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
         if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
@@ -108,7 +154,7 @@ perform_commissioning() {
     local https_port="${GATEWAY_HTTPS_PORT:=8043}"
     local use_ssl="${GATEWAY_USESSL:=false}"
     local port_payload='{"id":"connections","step":"connections","data":{"http":'${http_port}',"https":'${https_port}',"useSSL":'${use_ssl}'}}'
-    curl -H "Content-Type: application/json" -d "${port_payload}" ${url} > /dev/null 2>&1
+    evaluate_post_request "${url}" "${port_payload}" 201 "${phase}" "Configuring Connections"
     echo "  GATEWAY_HTTP_PORT: ${GATEWAY_HTTP_PORT}"
     echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
     # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
@@ -119,25 +165,31 @@ perform_commissioning() {
     else
         local start_flag="false"
     fi
-    local finalize_payload='{"id":"finished","data":{"start":'${start_flag}'}}'
-    curl -H "Content-Type: application/json" -d "${finalize_payload}" ${url} > /dev/null 2>&1
+
+    local finalize_key="start"
+    if [ "${MAKER_EDITION_SUPPORTED}" == "1" ]; then
+        finalize_key="startGateway"
+    fi
+    local finalize_payload='{"id":"finished","data":{"'${finalize_key}'":'${start_flag}'}}'
+    evaluate_post_request "${url}" "${finalize_payload}" 200 "${phase}" "Finalizing Gateway"
 }
 
-# usage: health_check PHASE_DESC DELAY_SECS
+# usage: health_check PHASE_DESC DELAY_SECS TARGET
 #   ie: health_check "Gateway Commissioning" 60
 health_check() {
     local phase="$1"
     local delay=$2
+    local target=$3
 
     # Wait for a short period for the commissioning servlet to come alive
     for ((i=${delay};i>0;i--)); do
-        if curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep -c RUNNING > /dev/null; then   
+        if curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep -c ${target} > /dev/null; then   
             break
         fi
         sleep 1
     done
     if [ "$i" -le 0 ]; then
-        echo >&2 "Failed to detect RUNNING status during ${phase} after ${delay} delay."
+        echo >&2 "Failed to detect ${target} status during ${phase} after ${delay} delay."
         exit 1
     fi
 }
@@ -223,12 +275,22 @@ register_jdbc() {
     done
 }
 
-# usage enable_disable_modules MODULES_ENABLED
-#   ie: enable_disable_modules vision,opc-ua,sql-bridge
+# usage enable_disable_modules MODULES_ENABLED GATEWAY_RESTORE_REQUIRED
+#   ie: enable_disable_modules vision,opc-ua,sql-bridge 0
 enable_disable_modules() {
 	local MODULES_ENABLED="${1}"
+    local GATEWAY_RESTORE_REQUIRED="${2}"
 
-	if [ "${MODULES_ENABLED}" = "all" ]; then return 0; fi
+	if [ "${MODULES_ENABLED}" = "all" ]; then 
+        if [ "${IGNITION_EDITION}" == "maker" -a "${GATEWAY_RESTORE_REQUIRED}" == "1" ]; then
+            # Reset MODULES_ENABLED based on supported modules for Maker Edition, necessary
+            # when restoring from backup, where the native edition selection commissioning doesn't
+            # handle purging the modules from the base install automatically.
+            MODULES_ENABLED="alarm-notification,allen-bradley-drivers,logix-driver,modbus-driver-v2,omron-driver,opc-ua,perspective,reporting,serial-support-gateway,sfc,siemens-drivers,sql-bridge,tag-historian,udp-tcp-drivers,user-manual,web-developer"
+        else
+            return 0
+        fi
+    fi
 
 	echo -n "Processing Module Enable/Disable... "
 
@@ -268,7 +330,7 @@ enable_disable_modules() {
 	fi
 
 	# Read an array modules_enabled with the list of enabled module definitions
-	mapfile -d , -t modules_enabled <<< "$GATEWAY_MODULES_ENABLED"
+	mapfile -d , -t modules_enabled <<< "$MODULES_ENABLED"
 
 	# Find the currently present modules in the installation
 	mapfile -t modules_list < <(find "${modules_path}" -name '*.modl' -type f -printf "%f\n")
@@ -371,7 +433,8 @@ register_modules() {
 
 # usage: compare_versions IMAGE_VERSION VOLUME_VERSION
 #   ie: compare_versions "8.0.2" "7.9.11"
-# return values: -3 = unexpected version syntax
+# return values: -4 = unexpected version syntax in image version
+#                -3 = unexpected version syntax in volume version
 #                -2 = image version is lower than volume version - invalid configuration!
 #                -1 = unknown comparison result
 #                 0 = image version is equal to volume version - no action required
@@ -390,8 +453,7 @@ compare_versions() {
     local volume_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
     
     if [ ${#image_version_arr[@]} -ne 3 ]; then
-        echo >&2 "Unexpected version syntax found in image (${image_version})"
-        return_value=-3
+        return_value=-4
     elif [ -z "${volume_version}" ]; then
         # Special Case for detecting Ignition 8 images that might not have a volume version declared in the init file path
         if [ -L "${IGNITION_INSTALL_LOCATION}/data" ]; then
@@ -400,7 +462,6 @@ compare_versions() {
             return_value=1
         fi
     elif [ ${#volume_version_arr[@]} -ne 3 ]; then
-        echo >&2 "Unexpected version syntax found in volume (${volume_version})"
         return_value=-3
     elif [ "${image_version}" = "${volume_version}" ]; then
         return_value=0
@@ -413,16 +474,12 @@ compare_versions() {
                 return_value=1  # Major Version Upgrade Detected, commissioning will be required
                 break
             elif [ ${volume_version_arr[$i]} -gt ${image_version_arr[$i]} ]; then
-                echo >&2 "Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
                 return_value=-2  # ... and flag lower case (invalid) if detected
                 break
             fi
         done        
     fi
 
-    if [ ${return_value} -eq -1 ]; then
-        echo >&2 "Unknown error encountered during version comparison, aborting..."
-    fi
     echo ${return_value}
 }
 
@@ -440,6 +497,15 @@ check_for_upgrade() {
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
     if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
         image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
+    fi
+
+    # Check version compatibility for Maker edition
+    local version_check=$(compare_versions "${image_version}" "8.0.14")
+    if [ ${version_check} -lt 0 -a "${IGNITION_EDITION}" == "maker" ]; then
+        echo >&2 "Maker Edition not supported until 8.0.13"
+        exit ${version_check}
+    else
+        export MAKER_EDITION_SUPPORTED=1
     fi
 
     if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
@@ -470,7 +536,24 @@ check_for_upgrade() {
                     upgrade_check_result=1
                 fi
                 ;;
+            -1)
+                echo >&2 "Unknown error encountered during version comparison, aborting..."
+                exit ${version_check}
+                ;;
+            -2)
+                echo >&2 "Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
+                exit ${version_check}
+                ;;
+            -3)
+                echo >&2 "Unexpected version syntax found in volume (${volume_version})"
+                exit ${version_check}
+                ;;
+            -4)
+                echo >&2 "Unexpected version syntax found in image (${image_version})"
+                exit ${version_check}
+                ;;
             *)
+                echo >&2 "Unexpected error (${version_check}) during upgrade checks"
                 exit ${version_check}
                 ;;
         esac
@@ -479,6 +562,26 @@ check_for_upgrade() {
 
 # Collect additional arguments if we're running the gateway
 if [ "$1" = './ignition-gateway' ]; then
+    # Validate environment variables surrounding IGNITION_EDITION
+    file_env 'IGNITION_ACTIVATION_TOKEN'
+    file_env 'IGNITION_LICENSE_KEY'
+    if [[ ${IGNITION_EDITION} =~ "maker" ]]; then
+        # Ensure that License Key and Activation Tokens are supplied
+        if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" -o -z "${IGNITION_LICENSE_KEY}" ]; then
+            echo >&2 "Missing ENV variables, must specify activation token and license key for edition: ${IGNITION_EDITION}"
+            exit 1
+        fi
+    else
+        case ${IGNITION_EDITION} in
+          maker | full | edge)
+            ;;
+          *)
+            echo >&2 "Invalid edition (${IGNITION_EDITION}) specified, must be 'maker', 'edge', or 'full'"
+            exit 1
+            ;;
+        esac
+    fi
+
     # Examine memory constraints and apply to Java arguments
     if [ ! -z ${GATEWAY_INIT_MEMORY:-} ]; then
         if [ ${GATEWAY_INIT_MEMORY} -ge 256 2> /dev/null ]; then
@@ -534,10 +637,7 @@ if [ "$1" = './ignition-gateway' ]; then
         "${WRAPPER_OPTIONS[@]}"
         "${JAVA_OPTIONS[@]}"
     )
-fi
 
-# Check for no Docker Init Complete file
-if [ "$1" = './ignition-gateway' ]; then
     # Check for Upgrade and Mark Initialization File
     check_for_upgrade "${IGNITION_INSTALL_LOCATION}/data/.docker-init-complete"
 
@@ -617,8 +717,7 @@ if [ "$1" = './ignition-gateway' ]; then
         pid="$!"
 
         echo "Waiting for commissioning servlet to become active..."
-        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=30}
-
+        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=30} "RUNNING"
         perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
         
         # If not restoring (but module registration required), allow spool-up of base gateway
@@ -627,12 +726,15 @@ if [ "$1" = './ignition-gateway' ]; then
               "${GATEWAY_RESTORE_REQUIRED}" != "1" ]]; then
             sleep 5
             echo "Commissioning completed, awaiting initial gateway startup..."
-            health_check "Startup" ${IGNITION_STARTUP_DELAY:=60}
+            health_check "Startup" ${IGNITION_STARTUP_DELAY:=60} "RUNNING"
             stop_process $pid
             
             register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
             register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         else
+            if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" ]; then
+                health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=60} "STARTING"
+            fi
             stop_process $pid
         fi
 
@@ -642,7 +744,7 @@ if [ "$1" = './ignition-gateway' ]; then
     fi
 
     # Perform module enablement/disablement
-    enable_disable_modules ${GATEWAY_MODULES_ENABLED}
+    enable_disable_modules ${GATEWAY_MODULES_ENABLED} ${GATEWAY_RESTORE_REQUIRED}
 
     echo 'Starting Ignition Gateway...'
 fi
