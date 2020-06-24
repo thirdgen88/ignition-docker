@@ -21,6 +21,8 @@ Kevin Collins (independent Ignition enthusiast)
 ## What is Ignition?
 <!-- markdownlint-enable MD037 -->
 
+![Ignition Logo](https://inductiveautomation.com/static/images/logo_ignition_lg.png)
+
 Ignition is a SCADA software platform made by [Inductive Automation](http://inductiveautomation.com).  This repository, intended for development use on the Ignition platform, is not sponsored by Inductive Automation, please visit their website for more information.
 
 For more information on Inductive Automation and the Ignition Platform, please visit [www.inductiveautomation.com](https://www.inductiveautomation.com).
@@ -29,9 +31,7 @@ For more information on Inductive Automation and the Ignition Platform, please v
 
 The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  If you wish to explore other deployment scenarios, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo for multi-container Docker Compose examples.
 
-## Start an **Ignition** gateway instance
-
-<img style="width: 256px" src="https://inductiveautomation.com/static/images/logo_ignition_lg.png">
+## Start an `Ignition` gateway instance
 
 You can start an instance of Ignition in its own container as below:
 
@@ -39,9 +39,7 @@ You can start an instance of Ignition in its own container as below:
 
 ... where `my-ignition` is the container name you'd like to refer to this instance later with, the publish ports `8088:8088` describes the first port `8088` on the host that will forward to the second port `8088` on the container, and `tag` is the tag specifying the version of Ignition that you'd like to provision.  See the list above for current image tags.  _NOTE: GATEWAY_ADMIN_PASSWORD is a new field for Ignition 8.0 and the gateway commissioning process.  See the table below in container customization for more information_
 
-## Start an **Ignition Edge** gateway instance
-
-<img style="width: 512px" src="https://cdn-assets-cloud.frontify.com/local/frontify/eyJwYXRoIjoiXC9wdWJsaWNcL3VwbG9hZFwvc2NyZWVuc1wvMTAzMTg3XC8wMDE4ZjA1MWQwNTA1NDgxMDlkMWE4MWUzNzQ3YzIzNS0xNTIzOTAwMzA2LnBuZyJ9:frontify:2rbAMJku64qLa_RBlLSDV8GnNRCHxrfDPi77sZ2FkoQ?width=2400">
+## Start an `Ignition Edge` gateway instance
 
 _New/Updated with Ignition 8.0.14 as of 2020-06-24_
 
@@ -51,17 +49,15 @@ If you want to run the Ignition Edge variant, simply supply `IGNITION_EDITION=ed
 
 For older versions (prior to 8.0.14), you can specify the image format with a `-edge` suffix, e.g. `kcollins/ignition:8.0.13-edge`
 
-## Start an **Ignition Maker Edition** gateway instance
-
-<img style="width: 256px" src="https://inductiveautomation.com/static/images/maker-edition/ignitionmakeredition-logo-primary.png">
+## Start an `Ignition Maker Edition` gateway instance
 
 _New with Ignition 8.0.14 as of 2020-06-24_
 
 If you want to run the Ignition Maker Edition variant, supply some additional environment variables with the container launch.  You'll need to acquire a _Maker Edition_ license from Inductive Automation to use this image variant.  More information [here](https://inductiveautomation.com/ignition/maker-edition).
 
-- `IGNITION_EDITION=maker` - Specifies Maker Edition
-- `IGNITION_LICENSE_KEY=ABCD_1234` - Supply your license key
-- `IGNITION_ACTIVATION_TOKEN=xxxxxxx` - Supply your activation token
+* `IGNITION_EDITION=maker` - Specifies Maker Edition
+* `IGNITION_LICENSE_KEY=ABCD_1234` - Supply your license key
+* `IGNITION_ACTIVATION_TOKEN=xxxxxxx` - Supply your activation token
 
 Run the container with these extra environment variables:
 
@@ -126,7 +122,7 @@ Variable                           | Description                                
 `IGNITION_COMMISSIONING_DELAY`     | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
 `IGNITION_EDITION`                 | Defaults to `FULL`, choose `FULL`, `EDGE`, or `MAKER` to set the Ignition Gateway type on initial launch
 `IGNITION_ACTIVATION_TOKEN`        | Token for automated gateway licensing/activation. **Required for _Maker_ edition.**
-`IGNITION_LICENSE_KEY`             | License Key for automated gateway licensing/activation. **Required for _Maker edition.**
+`IGNITION_LICENSE_KEY`             | License Key for automated gateway licensing/activation. **Required for _Maker_ edition.**
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -286,7 +282,7 @@ If you wish to overwrite a built-in module with one from the bind-mount path, de
 
 _New with latest 7.9.13 and 8.0.7 images as of 2020-01-25!_
 
-To automatically link any associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.  No additional action is needed to then leverage database connections with those drivers within the gateway.
+To automatically link any associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.
 
     $ ls /path/to/my/jdbc-drivers
 
@@ -309,17 +305,6 @@ _New with latest 7.9.11 and 8.0.2 images as of 2019-06-28!_
 Upgrading Ignition versions is now supported!  If you have your container bound with a named volume to `/var/lib/ignition/data` (as described above), upgrading to a newer container is now just a matter of stopping/removing the existing container, and starting a new container against a newer image.  Just make sure to connect the same volume to the new container and the entrypoint script will handle running the upgrader and conduct any additional provisioning actions automatically.
 
 Note:  If you attempt to start a container bound to a newer-version image, an error will be produced and the container will not start.  Upgrades are supported, and downgrades are disallowed (as expected).
-
-## How to set Gateway Timezone
-
-To set the gateway timezone, simply add a `TZ` environment variable to the container:
-
-    $ docker run -p 8088:8088 -v my-ignition-data:/var/lib/ignition/data \
-        -e GATEWAY_ADMIN_PASSWORD=password \
-        -e TZ="America/Chicago"
-        -d kcollins/ignition:latest
-
-Once the gateway starts, you should be able to see the designated local time in the _Environment_ section of the Gateway Status Overview Webpage.
 
 ## Multi-Architecture Builds
 
