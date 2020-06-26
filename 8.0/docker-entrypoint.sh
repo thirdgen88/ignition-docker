@@ -116,7 +116,7 @@ perform_commissioning() {
     echo "Performing commissioning actions..."
 
     # Select Edition - Full, Edge, Maker
-    if [ "${restore_flag_value}" = 0 ]; then
+    if [ "${restore_flag_value}" == "0" -a "${EDITION_PHASE_REQUIRED}" == "1" ]; then
         local edition_selection="${IGNITION_EDITION}"
         if [ "${IGNITION_EDITION}" == "full" ]; then edition_selection=""; fi
         local edition_selection_payload='{"id":"edition","step":"edition","data":{"edition":"'${edition_selection}'"}}'
@@ -130,7 +130,7 @@ perform_commissioning() {
     echo "  EULA_STATUS: accepted"
     
     # Perform Activation (currently only for Maker edition)
-    if [ ${IGNITION_EDITION} == "maker" ]; then
+    if [ ${IGNITION_EDITION} == "maker" -a "${MAKER_EDITION_SUPPORTED}" == "1" ]; then
         local activation_payload='{"id":"activation","data":{"licenseKey":"'${IGNITION_LICENSE_KEY}'","activationToken":"'${IGNITION_ACTIVATION_TOKEN}'"}}'
         evaluate_post_request "${url}" "${activation_payload}" 201 "${phase}" "Online Activation"
         echo "  IGNITION_LICENSE_KEY: ${IGNITION_LICENSE_KEY}"
@@ -160,14 +160,14 @@ perform_commissioning() {
     # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
 
     # Finalize
-    if [ "${restore_flag_value}" = "0" ]; then
+    if [ "${restore_flag_value}" == "0" ]; then
         local start_flag="true"
     else
         local start_flag="false"
     fi
 
     local finalize_key="start"
-    if [ "${MAKER_EDITION_SUPPORTED}" == "1" ]; then
+    if [ "${EDITION_PHASE_REQUIRED}" == "1" ]; then
         finalize_key="startGateway"
     fi
     local finalize_payload='{"id":"finished","data":{"'${finalize_key}'":'${start_flag}'}}'
@@ -508,6 +508,13 @@ check_for_upgrade() {
         export MAKER_EDITION_SUPPORTED=1
     fi
 
+    # Evaluate version to determine if Edition Selection phase is required in Gateway Commissioning
+    if [ ${version_check} -ge 0 ]; then  # We're greater or equal to 8.0.14 (set above)
+        export EDITION_PHASE_REQUIRED=1
+    else
+        export EDITION_PHASE_REQUIRED=0
+    fi
+
     if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
         # Fresh/new instance, case 1
         echo "${image_version}" > "${init_file_path}"
@@ -567,7 +574,7 @@ if [ "$1" = './ignition-gateway' ]; then
     file_env 'IGNITION_LICENSE_KEY'
     if [[ ${IGNITION_EDITION} =~ "maker" ]]; then
         # Ensure that License Key and Activation Tokens are supplied
-        if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" -o -z "${IGNITION_LICENSE_KEY}" ]; then
+        if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" -o -z "${IGNITION_LICENSE_KEY+x}" ]; then
             echo >&2 "Missing ENV variables, must specify activation token and license key for edition: ${IGNITION_EDITION}"
             exit 1
         fi
@@ -732,7 +739,7 @@ if [ "$1" = './ignition-gateway' ]; then
             register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
             register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         else
-            if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" ]; then
+            if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" -a "${EDITION_PHASE_REQUIRED}" == "1" ]; then
                 health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=60} "STARTING"
             fi
             stop_process $pid
