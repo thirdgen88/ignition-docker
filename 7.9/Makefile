@@ -42,6 +42,9 @@ include ../.env
 	docker tag ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge ${BASE_IMAGE_NAME}:7.9-edge
 	docker push ${BASE_IMAGE_NAME}:7.9-edge
 
+### BUILD TARGETS ###
+all:
+	@echo "Please specify a build target: build, build-nightly, multibuild, multibuild-nightly"
 build: .build
 multibuild: .multibuild
 push-registry: .push-registry

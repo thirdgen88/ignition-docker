@@ -20,7 +20,8 @@ include .env
 	cd 8.0; make multibuild-nightly;
 
 # Summary Targets
-all: build
+all:
+	@echo "Please specify a build target: build, build-nightly, multibuild, multibuild-nightly"
 build: .build
 build-nightly: .build-nightly
 multibuild: .multibuild

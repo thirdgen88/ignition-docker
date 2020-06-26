@@ -37,6 +37,9 @@ include ../.env
 	docker tag ${BASE_IMAGE_NAME}:${IGNITION_VERSION} ${BASE_IMAGE_NAME}:latest
 	docker push ${BASE_IMAGE_NAME}:latest
 
+### BUILD TARGETS ###
+all:
+	@echo "Please specify a build target: build, build-nightly, multibuild, multibuild-nightly"
 build: .build
 build-nightly: .build-nightly
 multibuild: .multibuild
