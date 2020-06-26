@@ -62,21 +62,21 @@ add_gw_to_init () {
 # (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
 #  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
 file_env() {
-	local var="$1"
-	local fileVar="${var}_FILE"
-	local def="${2:-}"
-	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-		echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
-		exit 1
-	fi
-	local val="$def"
-	if [ "${!var:-}" ]; then
-		val="${!var}"
-	elif [ "${!fileVar:-}" ]; then
-		val="$(< "${!fileVar}")"
-	fi
-	export "$var"="$val"
-	unset "$fileVar"
+    local var="$1"
+    local fileVar="${var}_FILE"
+    local def="${2:-}"
+    if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
+        echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
+        exit 1
+    fi
+    local val="$def"
+    if [ "${!var:-}" ]; then
+        val="${!var}"
+    elif [ "${!fileVar:-}" ]; then
+        val="$(< "${!fileVar}")"
+    fi
+    export "$var"="$val"
+    unset "$fileVar"
 }
 
 # usage: evaluate_post_request URL PAYLOAD EXPECTED_CODE PHASE DESC
@@ -278,11 +278,11 @@ register_jdbc() {
 # usage enable_disable_modules MODULES_ENABLED GATEWAY_RESTORE_REQUIRED
 #   ie: enable_disable_modules vision,opc-ua,sql-bridge 0
 enable_disable_modules() {
-	local MODULES_ENABLED="${1}"
+    local MODULES_ENABLED="${1}"
     local GATEWAY_RESTORE_REQUIRED="${2}"
 
-	if [ "${MODULES_ENABLED}" = "all" ]; then 
-        if [ "${IGNITION_EDITION}" == "maker" -a "${GATEWAY_RESTORE_REQUIRED}" == "1" ]; then
+    if [ "${MODULES_ENABLED}" = "all" ]; then 
+        if [ "${IGNITION_EDITION}" == "maker" ]; then
             # Reset MODULES_ENABLED based on supported modules for Maker Edition, necessary
             # when restoring from backup, where the native edition selection commissioning doesn't
             # handle purging the modules from the base install automatically.
@@ -292,74 +292,74 @@ enable_disable_modules() {
         fi
     fi
 
-	echo -n "Processing Module Enable/Disable... "
+    echo -n "Processing Module Enable/Disable... "
 
-	# Perform removal of built-in modules
-	declare -A module_definition_mappings
-	module_definition_mappings["Alarm Notification-module.modl"]="alarm-notification"
-	module_definition_mappings["Allen-Bradley Drivers-module.modl"]="allen-bradley-drivers"
-	module_definition_mappings["DNP3-Driver.modl"]="dnp3-driver"
-	module_definition_mappings["Enterprise Administration-module.modl"]="enterprise-administration"
-	module_definition_mappings["Logix Driver-module.modl"]="logix-driver"
-	module_definition_mappings["Mobile-module.modl"]="mobile-module"
-	module_definition_mappings["Modbus Driver v2-module.modl"]="modbus-driver-v2"
-	module_definition_mappings["Omron-Driver.modl"]="omron-driver"
-	module_definition_mappings["OPC-UA-module.modl"]="opc-ua"
-	module_definition_mappings["Perspective-module.modl"]="perspective"
-	module_definition_mappings["Reporting-module.modl"]="reporting"
-	module_definition_mappings["Serial Support Client-module.modl"]="serial-support-client"
-	module_definition_mappings["Serial Support Gateway-module.modl"]="serial-support-gateway"
-	module_definition_mappings["SFC-module.modl"]="sfc"
-	module_definition_mappings["Siemens Drivers-module.modl"]="siemens-drivers"
-	module_definition_mappings["SMS Notification-module.modl"]="sms-notification"
-	module_definition_mappings["SQL Bridge-module.modl"]="sql-bridge"
-	module_definition_mappings["Symbol Factory-module.modl"]="symbol-factory"
-	module_definition_mappings["Tag Historian-module.modl"]="tag-historian"
-	module_definition_mappings["UDP and TCP Drivers-module.modl"]="udp-tcp-drivers"
-	module_definition_mappings["User Manual-module.modl"]="user-manual"
-	module_definition_mappings["Vision-module.modl"]="vision"
-	module_definition_mappings["Voice Notification-module.modl"]="voice-notification"
-	module_definition_mappings["Web Browser Module.modl"]="web-browser"
-	module_definition_mappings["Web Developer Module.modl"]="web-developer"
+    # Perform removal of built-in modules
+    declare -A module_definition_mappings
+    module_definition_mappings["Alarm Notification-module.modl"]="alarm-notification"
+    module_definition_mappings["Allen-Bradley Drivers-module.modl"]="allen-bradley-drivers"
+    module_definition_mappings["DNP3-Driver.modl"]="dnp3-driver"
+    module_definition_mappings["Enterprise Administration-module.modl"]="enterprise-administration"
+    module_definition_mappings["Logix Driver-module.modl"]="logix-driver"
+    module_definition_mappings["Mobile-module.modl"]="mobile-module"
+    module_definition_mappings["Modbus Driver v2-module.modl"]="modbus-driver-v2"
+    module_definition_mappings["Omron-Driver.modl"]="omron-driver"
+    module_definition_mappings["OPC-UA-module.modl"]="opc-ua"
+    module_definition_mappings["Perspective-module.modl"]="perspective"
+    module_definition_mappings["Reporting-module.modl"]="reporting"
+    module_definition_mappings["Serial Support Client-module.modl"]="serial-support-client"
+    module_definition_mappings["Serial Support Gateway-module.modl"]="serial-support-gateway"
+    module_definition_mappings["SFC-module.modl"]="sfc"
+    module_definition_mappings["Siemens Drivers-module.modl"]="siemens-drivers"
+    module_definition_mappings["SMS Notification-module.modl"]="sms-notification"
+    module_definition_mappings["SQL Bridge-module.modl"]="sql-bridge"
+    module_definition_mappings["Symbol Factory-module.modl"]="symbol-factory"
+    module_definition_mappings["Tag Historian-module.modl"]="tag-historian"
+    module_definition_mappings["UDP and TCP Drivers-module.modl"]="udp-tcp-drivers"
+    module_definition_mappings["User Manual-module.modl"]="user-manual"
+    module_definition_mappings["Vision-module.modl"]="vision"
+    module_definition_mappings["Voice Notification-module.modl"]="voice-notification"
+    module_definition_mappings["Web Browser Module.modl"]="web-browser"
+    module_definition_mappings["Web Developer Module.modl"]="web-developer"
 
-	# Create modules-disabled directory if doesn't already exist
-	modules_path="${IGNITION_INSTALL_LOCATION}/user-lib/modules"
-	modules_disabled_path="${IGNITION_INSTALL_LOCATION}/user-lib/modules-disabled"
-	if [ ! -d "${modules_disabled_path}" ]; then
-		mkdir -p "${modules_disabled_path}"
-	fi
+    # Create modules-disabled directory if doesn't already exist
+    modules_path="${IGNITION_INSTALL_LOCATION}/user-lib/modules"
+    modules_disabled_path="${IGNITION_INSTALL_LOCATION}/user-lib/modules-disabled"
+    if [ ! -d "${modules_disabled_path}" ]; then
+        mkdir -p "${modules_disabled_path}"
+    fi
 
-	# Read an array modules_enabled with the list of enabled module definitions
-	mapfile -d , -t modules_enabled <<< "$MODULES_ENABLED"
+    # Read an array modules_enabled with the list of enabled module definitions
+    mapfile -d , -t modules_enabled <<< "$MODULES_ENABLED"
 
-	# Find the currently present modules in the installation
-	mapfile -t modules_list < <(find "${modules_path}" -name '*.modl' -type f -printf "%f\n")
+    # Find the currently present modules in the installation
+    mapfile -t modules_list < <(find "${modules_path}" -name '*.modl' -type f -printf "%f\n")
 
-	for module_filename in "${modules_list[@]}"; do
-		module_filepath="${modules_path}/${module_filename}"
-		module_definition="${module_definition_mappings[${module_filename}]}"
+    for module_filename in "${modules_list[@]}"; do
+        module_filepath="${modules_path}/${module_filename}"
+        module_definition="${module_definition_mappings[${module_filename}]}"
 
-		if [ -z "${module_definition}" ]; then
-			printf "\n  Unknown module ${module_filename}, skipping..."
-			continue
-		fi
-		
-		# Search for Module Definition in List of Modules Enabled
-		module_found=0
-		for (( n=0; n<${#modules_enabled[@]}; n++ )); do
-			if [ ${module_definition} = ${modules_enabled[$n]} ]; then
-				module_found+=1
-				break
-			fi
-		done
-		
-		# If we didn't find it, move to disabled path
-		if [ ${module_found} -eq 0 ]; then
-			printf "\n  Disabling '${module_filename}'"
-			mv "${module_filepath}" "${modules_disabled_path}/"
-		fi
-	done
-	echo
+        if [ -z "${module_definition}" ]; then
+            printf "\n  Unknown module ${module_filename}, skipping..."
+            continue
+        fi
+        
+        # Search for Module Definition in List of Modules Enabled
+        module_found=0
+        for (( n=0; n<${#modules_enabled[@]}; n++ )); do
+            if [ ${module_definition} = ${modules_enabled[$n]} ]; then
+                module_found+=1
+                break
+            fi
+        done
+        
+        # If we didn't find it, move to disabled path
+        if [ ${module_found} -eq 0 ]; then
+            printf "\n  Disabling '${module_filename}'"
+            mv "${module_filepath}" "${modules_disabled_path}/"
+        fi
+    done
+    echo
 }
 
 # usage register_modules RELINK_ENABLED DB_LOCATION
