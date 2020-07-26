@@ -13,7 +13,7 @@
 Kevin Collins (independent Ignition enthusiast)
 
 * **Supported architectures**:
-`amd64`, `armhf` ([More Info](#Multi-Architecture%20Builds))
+`amd64`, `armhf`, `arm64`  ([More Info](#Multi-Architecture%20Builds))
 
 * **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
@@ -308,7 +308,7 @@ Note:  If you attempt to start a container bound to a newer-version image, an er
 
 ## Multi-Architecture Builds
 
-The 8.0 image now supports both `arm64` and `armhf` architectures.  This means you can now run the Ignition or Ignition Edge containers on your Raspberry Pi (among other ARM-based devices).  They've only been tested on 32-bit builds of Raspberry Pi OS, but should work well on other 32-bit ARM platforms.  Use the same image tags you use normally--it will automatically pull the image appropriate for your architecture from Docker Hub.  
+The 8.0 image now supports both `arm64` (64-bit) and `armhf` (32-bit) architectures.  This means you can now run the Ignition or Ignition Edge containers on your Raspberry Pi (among other ARM-based devices).  Use the same image tags you use normally--it will automatically pull the image appropriate for your architecture from Docker Hub.  
 
 > **NOTE:** Regarding the Ignition 7.9.x branch, there is currently an issue with the AdoptOpenJDK JDK8 build that we're using that leaves the JVM without a JIT compiler and reduces performance significantly when running on aarch32/armhf.  Track that issue [here](https://github.com/AdoptOpenJDK/openjdk-build/issues/1531).  Once it is resolved and performance is normal, I'll enable the `armhf` build for `kcollins/ignition:7.9`.  The 8.0 image uses JDK11 and is unaffected by this particular issue.
 
