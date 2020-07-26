@@ -1,6 +1,6 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.0.14`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.0.15`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`nightly`, `nightly-edge` (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.0/Dockerfile)
 * [`7.9.14`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 * [`7.9.14-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
@@ -65,7 +65,7 @@ Run the container with these extra environment variables:
         -e IGNITION_EDITION=maker \ 
         -e IGNITION_LICENSE_KEY=ABCD_1234 \
         -e IGNITION_ACTIVATION_TOKEN=asdfghjkl \
-        -d kcollins/ignition:8.0.14
+        -d kcollins/ignition:latest
 
 You can also place the activation token and/or license key in a file that is either integrated with Docker Secrets (via Docker Compose or Swarm) or simply bind-mounted into the container.  Appending `_FILE` to the environment variables causes the value to be read in from the declared file location.  If we have a file containing our activation token named `activation-token`, we can run the container like below:
 
@@ -74,7 +74,7 @@ You can also place the activation token and/or license key in a file that is eit
         -e IGNITION_LICENSE_KEY=ABCD_1234 \
         -v /path/to/activation-token:/activation-token \
         -e IGNITION_ACTIVATION_TOKEN_FILE=/activation-token \
-        -d kcollins/ignition:8.0.14
+        -d kcollins/ignition:latest
 
 Keep in mind that you should consider [preserving your gateway data](#How-to-persist-Gateway-data) in a volume as well.  Additionally, all [container customizations](#Container-Customization) are supported in all editions/variants, including Maker Edition.
 

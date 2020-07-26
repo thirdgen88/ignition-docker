@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="8.0.14"
+ARG IGNITION_VERSION="8.0.15"
 
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
@@ -13,17 +13,22 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.14/20200622-2012/Ignition-linux-64-8.0.14.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="4338f537be7d4c356876904b74aeb47f3c95c4358b3084dba5734d5b07de11a9"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-64-8.0.15.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="f131f51d0ad823e47dd11e7ef2f78b7483fd6e0b8597000968a292113f963d95"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.16-SNAPSHOT/Ignition-linux-64-8.0.16-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.14/20200622-2012/Ignition-linux-armhf-8.0.14.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="9dde38375af70c93ecdaf06f93befcec761ad0b3d20618ad22a620e51853b1e1"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-armhf-8.0.15.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="8451de5c77882a8a43784a675f3fe7d1833c27a8c1d3ce1ff2943d53b87d56f5"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.16-SNAPSHOT/Ignition-linux-armhf-8.0.16-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-aarch64-8.0.15.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="b44c498f8073181bd61b3d86be2066f9d252c67d4baecaaba7fa22c392b0a7c9"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.16-SNAPSHOT/Ignition-linux-aarch64-8.0.16-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
+ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
 # Retrieve Ignition Installer and Perform Ignition Installation
 ENV INSTALLER_PATH /root
@@ -39,7 +44,7 @@ RUN set -exo pipefail; \
     download_url_env="IGNITION_${BUILD_EDITION}_${dpkg_arch}_DOWNLOAD_URL"; \
     download_sha256_env="IGNITION_${BUILD_EDITION}_${dpkg_arch}_DOWNLOAD_SHA256"; \
     if [ -n "${!download_url_env}" ] && [ -n "${!download_sha256_env}" ]; then \
-        wget -q --referer https://inductiveautomation.com/* -O "${INSTALLER_NAME}" "${!download_url_env}" && \
+        wget -q --ca-certificate=/etc/ssl/certs/ca-certificates.crt --referer https://inductiveautomation.com/* -O "${INSTALLER_NAME}" "${!download_url_env}" && \
         if [[ ${BUILD_EDITION} != *"NIGHTLY"* ]]; then echo "${!download_sha256_env}" "${INSTALLER_NAME}" | sha256sum -c -; fi ; \
     else \
         echo "Architecture ${dpkg_arch} download targets not defined, aborting build"; \
@@ -89,7 +94,7 @@ ARG BUILD_EDITION
 ENV BUILD_EDITION ${BUILD_EDITION:-FULL}
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu
+RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu jq
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"

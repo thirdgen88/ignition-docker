@@ -140,9 +140,9 @@ perform_commissioning() {
     if [ ${upgrade_check_result} -eq -1 ]; then
         local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
         local auth_salt=$(date +%s | sha256sum | head -c 8)
-        local auth_pwhash=$(echo -en ${GATEWAY_ADMIN_PASSWORD}${auth_salt} | sha256sum - | cut -c -64)
+        local auth_pwhash=$(printf %s "${GATEWAY_ADMIN_PASSWORD}${auth_salt}" | sha256sum - | cut -c -64) 
         local auth_password="[${auth_salt}]${auth_pwhash}"
-        local auth_payload='{"id":"authentication","step":"authSetup","data":{"username":"'${auth_user}'","password":"'${auth_password}'"}}'
+        local auth_payload=$(jq -ncM --arg user "$auth_user" --arg pass "$auth_password" '{ id: "authentication", step:"authSetup", data: { username: $user, password: $pass }}')
         evaluate_post_request "${url}" "${auth_payload}" 201 "${phase}" "Configuring Authentication"
 
         echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
@@ -502,7 +502,7 @@ check_for_upgrade() {
     # Check version compatibility for Maker edition
     local version_check=$(compare_versions "${image_version}" "8.0.14")
     if [ ${version_check} -lt 0 -a "${IGNITION_EDITION}" == "maker" ]; then
-        echo >&2 "Maker Edition not supported until 8.0.13"
+        echo >&2 "Maker Edition not supported until 8.0.14"
         exit ${version_check}
     else
         export MAKER_EDITION_SUPPORTED=1
