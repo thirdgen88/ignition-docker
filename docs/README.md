@@ -227,6 +227,7 @@ Module Definition | Module Filename
 ----------------- | ------------------------
 `alarm-notification` | Alarm Notification-module.modl
 `allen-bradley-drivers` | Allen-Bradley Drivers-module.modl
+`bacnet-driver` | BACnet Driver-module.modl
 `dnp3-driver` | DNP3-Driver.modl
 `enterprise-administration` | Enterprise Administration-module.modl
 `logix-driver` | Logix Driver-module.modl

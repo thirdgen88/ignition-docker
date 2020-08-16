@@ -15,18 +15,18 @@ RUN apt-get update && apt-get install -y wget unzip
 # Ignition Downloader Parameters
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-64-8.0.15.zip"
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="f131f51d0ad823e47dd11e7ef2f78b7483fd6e0b8597000968a292113f963d95"
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.16-SNAPSHOT/Ignition-linux-64-8.0.16-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.17-SNAPSHOT/Ignition-linux-64-8.0.17-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
 ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-armhf-8.0.15.zip"
 ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="8451de5c77882a8a43784a675f3fe7d1833c27a8c1d3ce1ff2943d53b87d56f5"
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.16-SNAPSHOT/Ignition-linux-armhf-8.0.16-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.17-SNAPSHOT/Ignition-linux-armhf-8.0.17-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-aarch64-8.0.15.zip"
 ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="b44c498f8073181bd61b3d86be2066f9d252c67d4baecaaba7fa22c392b0a7c9"
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.16-SNAPSHOT/Ignition-linux-aarch64-8.0.16-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.17-SNAPSHOT/Ignition-linux-aarch64-8.0.17-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 

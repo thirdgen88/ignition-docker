@@ -116,7 +116,7 @@ perform_commissioning() {
     echo "Performing commissioning actions..."
 
     # Select Edition - Full, Edge, Maker
-    if [ "${restore_flag_value}" == "0" -a "${EDITION_PHASE_REQUIRED}" == "1" ]; then
+    if [ "${EDITION_PHASE_REQUIRED}" == "1" ]; then
         local edition_selection="${IGNITION_EDITION}"
         if [ "${IGNITION_EDITION}" == "full" ]; then edition_selection=""; fi
         local edition_selection_payload='{"id":"edition","step":"edition","data":{"edition":"'${edition_selection}'"}}'
@@ -159,32 +159,34 @@ perform_commissioning() {
     echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
     # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
 
-    # Finalize
-    if [ "${restore_flag_value}" == "0" ]; then
-        local start_flag="true"
-    else
-        local start_flag="false"
-    fi
-
     local finalize_key="start"
     if [ "${EDITION_PHASE_REQUIRED}" == "1" ]; then
         finalize_key="startGateway"
     fi
-    local finalize_payload='{"id":"finished","data":{"'${finalize_key}'":'${start_flag}'}}'
+    local finalize_payload='{"id":"finished","data":{"'${finalize_key}'":true}}'
     evaluate_post_request "${url}" "${finalize_payload}" 200 "${phase}" "Finalizing Gateway"
 }
 
-# usage: health_check PHASE_DESC DELAY_SECS TARGET
+# usage: health_check PHASE_DESC DELAY_SECS TARGET|DETAILS
 #   ie: health_check "Gateway Commissioning" 60
 health_check() {
     local phase="$1"
     local delay=$2
     local target=$3
+    local details="null"
+    if [[ "${target}" == *"|"* ]]; then
+        details=$(printf ${target} | cut -d \| -f 2)
+        target=$(printf ${target} | cut -d \| -f 1)
+    fi
+        
 
     # Wait for a short period for the commissioning servlet to come alive
     for ((i=${delay};i>0;i--)); do
-        if curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep -c ${target} > /dev/null; then   
-            break
+        raw_json=$(curl -s --max-time 3 -f http://localhost:8088/StatusPing || true)
+        state_value=$(echo ${raw_json} | jq -r '.["state"]')
+        details_value=$(echo ${raw_json} | jq -r '.["details"]')
+        if [ "${state_value}" == "${target}" -a "${details_value}" == "${details}" ]; then
+                break
         fi
         sleep 1
     done
@@ -275,11 +277,10 @@ register_jdbc() {
     done
 }
 
-# usage enable_disable_modules MODULES_ENABLED GATEWAY_RESTORE_REQUIRED
+# usage enable_disable_modules MODULES_ENABLED
 #   ie: enable_disable_modules vision,opc-ua,sql-bridge 0
 enable_disable_modules() {
     local MODULES_ENABLED="${1}"
-    local GATEWAY_RESTORE_REQUIRED="${2}"
 
     if [ "${MODULES_ENABLED}" = "all" ]; then 
         if [ "${IGNITION_EDITION}" == "maker" ]; then
@@ -298,6 +299,7 @@ enable_disable_modules() {
     declare -A module_definition_mappings
     module_definition_mappings["Alarm Notification-module.modl"]="alarm-notification"
     module_definition_mappings["Allen-Bradley Drivers-module.modl"]="allen-bradley-drivers"
+    module_definition_mappings["BACnet Driver-module.modl"]="bacnet-driver"
     module_definition_mappings["DNP3-Driver.modl"]="dnp3-driver"
     module_definition_mappings["Enterprise Administration-module.modl"]="enterprise-administration"
     module_definition_mappings["Logix Driver-module.modl"]="logix-driver"
@@ -682,76 +684,54 @@ if [ "$1" = './ignition-gateway' ]; then
             if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
                 accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
             fi
-        fi
 
-        # Perform some staging for the rest of the provisioning process
-        if [ -f "/restore.gwbk" ]; then
-            export GATEWAY_RESTORE_REQUIRED="1"
-        else
-            export GATEWAY_RESTORE_REQUIRED="0"
+            # Perform some staging for the rest of the provisioning process
+            if [ -f "/restore.gwbk" ]; then
+                export GATEWAY_RESTORE_REQUIRED="1"
+            else
+                export GATEWAY_RESTORE_REQUIRED="0"
+            fi
         fi
     
-        # Gateway Restore
-        if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
-            # Accumulate Gateway Command Utility Options
-            if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
-                GWCMD_OPTIONS+=( "--disabled" )
-            fi
-            if [ ! -z "${GATEWAY_SYSTEM_NAME:-}" ]; then
-                GWCMD_OPTIONS+=( "--name" $(echo "${GATEWAY_SYSTEM_NAME}" | sed 's/ //g') )
-            fi
-            if [ ${#GWCMD_OPTIONS[@]} -gt 0 ]; then
-                echo "Gateway Restore Options: ${GWCMD_OPTIONS[@]}"
-            fi
-
-            echo 'Restoring Gateway Backup...'
-            ./gwcmd.sh --restore /restore.gwbk ${GWCMD_OPTIONS[@]} -y
-            restore_file_path=$(find "${IGNITION_INSTALL_LOCATION}/data/" -maxdepth 1 -regex "${IGNITION_INSTALL_LOCATION}/data/__restore_[disabled_]*[0-9]+\.gwbk" | head -n 1)
-
-            if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) ]]; then
-                pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
-                unzip -q "${restore_file_path}" db_backup_sqlite.idb
-                register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-                register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-                zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ ${ZIP_EXIT_CODE:=$?} == 12 ]; then echo "No changes to internal database needed for linked modules."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
-                popd > /dev/null 2>&1
-            fi
-        fi
-
         # Initialize Gateway
         echo "Provisioning will be logged here: ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log"
         "${CMD[@]}" > ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log 2>&1 &
         pid="$!"
 
         echo "Waiting for commissioning servlet to become active..."
-        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=30} "RUNNING"
-        perform_commissioning "http://localhost:8088/post-step" ${GATEWAY_RESTORE_REQUIRED}
-        
-        # If not restoring (but module registration required), allow spool-up of base gateway
-        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || 
-              (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) && 
-              "${GATEWAY_RESTORE_REQUIRED}" != "1" ]]; then
-            sleep 5
-            echo "Commissioning completed, awaiting initial gateway startup..."
-            health_check "Startup" ${IGNITION_STARTUP_DELAY:=60} "RUNNING"
-            stop_process $pid
-            
-            register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
-            register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=30} "RUNNING|COMMISSIONING"
+        perform_commissioning "http://localhost:8088/post-step"
+        health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=60} "RUNNING"
+        stop_process $pid
+    fi
+    
+    # Gateway Restore
+    if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
+        # Set restore path based on disabled startup condition
+        if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
+            restore_file_path="${IGNITION_INSTALL_LOCATION}/data/__restore_disabled_$(( $(date '+%s%N') / 1000000)).gwbk"
         else
-            if [ "${GATEWAY_RESTORE_REQUIRED}" != "1" -a "${EDITION_PHASE_REQUIRED}" == "1" ]; then
-                health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=60} "STARTING"
-            fi
-            stop_process $pid
+            restore_file_path="${IGNITION_INSTALL_LOCATION}/data/__restore_$(( $(date '+%s%N') / 1000000)).gwbk"
         fi
 
+        echo 'Placing restore file into location...'
+        cp /restore.gwbk "${restore_file_path}"
+
+        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) ]]; then
+            pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
+            unzip -q "${restore_file_path}" db_backup_sqlite.idb
+            register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+            register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+            zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ ${ZIP_EXIT_CODE:=$?} == 12 ]; then echo "No changes to internal database needed for linked modules."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
+            popd > /dev/null 2>&1
+        fi
     else
         register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     fi
 
     # Perform module enablement/disablement
-    enable_disable_modules ${GATEWAY_MODULES_ENABLED} ${GATEWAY_RESTORE_REQUIRED}
+    enable_disable_modules ${GATEWAY_MODULES_ENABLED}
 
     echo 'Starting Ignition Gateway...'
 fi
