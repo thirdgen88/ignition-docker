@@ -59,6 +59,9 @@ RUN mkdir ignition && \
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
 
+# Add jre-tmp folder in base ignition location
+RUN mkdir -p jre-tmp
+
 # Stage data, temp, logs and user-lib in var folders
 RUN mkdir -p /var/lib/ignition && \
     mv data /var/lib/ignition/ && \
