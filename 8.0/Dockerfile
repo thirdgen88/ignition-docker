@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="8.0.15"
+ARG IGNITION_VERSION="8.0.16"
 
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
@@ -13,19 +13,19 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-64-8.0.15.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="f131f51d0ad823e47dd11e7ef2f78b7483fd6e0b8597000968a292113f963d95"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.16/20200825-1345/Ignition-linux-64-8.0.16.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="fa48a921d357ea2fe807a2054d06b18fcbb4981fde6f359d706616e90264671e"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.17-SNAPSHOT/Ignition-linux-64-8.0.17-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-armhf-8.0.15.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="8451de5c77882a8a43784a675f3fe7d1833c27a8c1d3ce1ff2943d53b87d56f5"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.16/20200825-1345/Ignition-linux-armhf-8.0.16.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="74d1d5ca477e65bf8dce3f91453c8a9b38a04659b6e1c0d6ca5cb8ba15f4de56"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.17-SNAPSHOT/Ignition-linux-armhf-8.0.17-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.15/20200722-1300/Ignition-linux-aarch64-8.0.15.zip"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="b44c498f8073181bd61b3d86be2066f9d252c67d4baecaaba7fa22c392b0a7c9"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.0.16/20200825-1345/Ignition-linux-aarch64-8.0.16.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="83da3b47c08941e8617767b4da1b179bb8282e2d27ea771d3aff872535473656"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.0.17-SNAPSHOT/Ignition-linux-aarch64-8.0.17-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
