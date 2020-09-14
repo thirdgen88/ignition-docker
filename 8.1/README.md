@@ -1,4 +1,4 @@
-# Ignition 8.0.x Docker Image
+# Ignition 8.1.x Docker Image
 
 If you're on Linux/macOS, you can build this image using the supplied Makefile to automate the docker image build.  There are a few build targets defined for your convenience, as outlined below.  
 
@@ -10,7 +10,7 @@ To build both the _FULL_ and _EDGE_ editions locally (with a custom tag) against
 
     $ make build BASE_IMAGE_NAME=custom/ignition
 
-This will create images `custom/ignition` with tags `8.0.x`, and `8.0` (based on the current version).
+This will create images `custom/ignition` with tags `8.1.x`, and `8.1` (based on the current version).
 
 You can also specify a registry target for the `BASE_IMAGE_NAME` so you can then push those images to your custom Docker image registry:
 
