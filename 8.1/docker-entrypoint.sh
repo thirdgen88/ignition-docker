@@ -12,6 +12,8 @@ GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
 IGNITION_EDITION=$(echo ${IGNITION_EDITION:-FULL} | awk '{print tolower($0)}')
+EMPTY_VOLUME_PATH="/data"
+DATA_VOLUME_LOCATION=$(if [ -d "${EMPTY_VOLUME_PATH}" ]; then echo "${EMPTY_VOLUME_PATH}"; else echo "/var/lib/ignition/data"; fi)
 
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
@@ -516,11 +518,40 @@ check_for_upgrade() {
         export EDITION_PHASE_REQUIRED=0
     fi
 
-    if [ ! -f "${IGNITION_INSTALL_LOCATION}/data/db/config.idb" ]; then
+    if [ ! -f "${DATA_VOLUME_LOCATION}/db/config.idb" ]; then
         # Fresh/new instance, case 1
         echo "${image_version}" > "${init_file_path}"
         upgrade_check_result=-1
+
+        # Check if we're using an empty-volume mode
+        if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+            # Move in-image data volume contents to /data to seed the volume
+            mv ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
+            # Replace symbolic links in base install location
+            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp"
+            ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
+            ln -s "${DATA_VOLUME_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/temp"
+            # Drop another symbolic link in original location for compatibility
+            rmdir /var/lib/ignition/data
+            ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
+        fi
     else
+        # Check if we're using an empty-volume mode (concurrent run)
+        if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+            # Replace symbolic links in base install location
+            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp"
+            ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
+            ln -s "${DATA_VOLUME_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/temp"
+            # Remove the in-image data folder (that presumably is still fresh, extra safety check here)
+            # and place a symbolic link to the /data volume for compatibility
+            if [ ! -a "/var/lib/ignition/data/db/config.idb" ]; then
+                rm -rf /var/lib/ignition/data
+                ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
+            else
+                echo "WARNING: Existing gateway instance detected in /var/lib/ignition/data, skipping purge/relink to ${DATA_VOLUME_LOCATION}..."
+            fi
+        fi
+
         if [ -f "${init_file_path}" ]; then
             local volume_version=$(cat ${init_file_path})
         fi
@@ -535,7 +566,7 @@ check_for_upgrade() {
                 echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
                 echo "Performing additional required volume updates"
-                mkdir -p "${IGNITION_INSTALL_LOCATION}/data/temp"
+                mkdir -p "${DATA_VOLUME_LOCATION}/temp"
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
                 if [ ${version_check} -eq 1 ]; then 
@@ -618,6 +649,14 @@ if [ "$1" = './ignition-gateway' ]; then
         exit 1
     fi
 
+    # Check for double-volume mounts to both `/data` (empty-volume mount functionality) and `/var/lib/ignition/data` (original)
+    empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
+    std_volume_check=$(grep -q -E " /var/lib/ignition/data " /proc/mounts; echo $?)
+    if [[ ${empty_volume_check} -eq 0 && ${std_volume_check} -eq 0 ]]; then
+        echo >&2 "ERROR: Double Volume Link (to both /var/lib/ignition/data and ${EMPTY_VOLUME_PATH}) Detected, aborting..."
+        exit 1
+    fi
+
     # Collect any other declared wrapper custom options by checking if any of the environment
     # variables are defined.  Ones that are defined will be added to the wrapper options.
     declare -A WRAPPER_CUSTOM_OPTIONS=(
@@ -647,7 +686,7 @@ if [ "$1" = './ignition-gateway' ]; then
     )
 
     # Check for Upgrade and Mark Initialization File
-    check_for_upgrade "${IGNITION_INSTALL_LOCATION}/data/.docker-init-complete"
+    check_for_upgrade "${DATA_VOLUME_LOCATION}/.docker-init-complete"
 
     if [ ${upgrade_check_result} -lt 0 ]; then
         # Only perform Provisioning on Fresh/New Instance
@@ -666,7 +705,7 @@ if [ "$1" = './ignition-gateway' ]; then
             fi
 
             # Provision the init.properties file if we've got the environment variables for it
-            rm -f /var/lib/ignition/data/init.properties
+            rm -f "${DATA_VOLUME_LOCATION}/init.properties"
             add_to_init "SystemName" GATEWAY_SYSTEM_NAME
             add_to_init "UseSSL" GATEWAY_USESSL
 
@@ -700,7 +739,7 @@ if [ "$1" = './ignition-gateway' ]; then
         echo "Waiting for commissioning servlet to become active..."
         health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=30} "RUNNING|COMMISSIONING"
         perform_commissioning "http://localhost:8088/post-step"
-        health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=60} "RUNNING"
+        health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=120} "RUNNING"
         stop_process $pid
     fi
     

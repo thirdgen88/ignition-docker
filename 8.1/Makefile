@@ -9,7 +9,7 @@ include ../.env
 .build-nightly:
 	@echo "======== BUILDING IGNITION NIGHTLY IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --no-cache --build-arg BUILD_EDITION=NIGHTLY -t ${BASE_IMAGE_NAME}:nightly -f Dockerfile .
+	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=NIGHTLY -t ${BASE_IMAGE_NAME}:nightly -f Dockerfile .
 
 .multibuild-nightly: CACHE_TAG=cache-nightly
 .multibuild-nightly:
