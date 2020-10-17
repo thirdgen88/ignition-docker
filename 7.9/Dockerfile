@@ -63,6 +63,7 @@ RUN mkdir -p /var/lib/ignition && \
     ln -s /var/lib/ignition/data data && \
     ln -s /var/lib/ignition/user-lib user-lib && \
     ln -s /var/lib/ignition/data/temp temp && \
+    ln -s /var/lib/ignition/data/temp /var/lib/ignition/temp && \
     ln -s /var/log/ignition logs
 
 # Apply Ignition Edge marker if applicable

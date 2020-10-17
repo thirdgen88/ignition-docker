@@ -501,6 +501,11 @@ if [ "$1" = './ignition-gateway' ]; then
             add_to_init "SystemName" GATEWAY_SYSTEM_NAME
             add_to_init "UseSSL" GATEWAY_USESSL
 
+            # Perform some corrections on ignition.conf to relative paths (required for 7.9.16 path change issue, see #38)
+            sed -E -i 's/^(wrapper\.java\.library\.path\.1=).*$/\1lib/' "${IGNITION_INSTALL_LOCATION}/data/ignition.conf"
+            sed -E -i 's/^(wrapper\.java\.additional\.[0-9]+=-Ddata\.dir=).*$/\1data/' "${IGNITION_INSTALL_LOCATION}/data/ignition.conf"
+            sed -E -i 's|^(wrapper\.logfile=).*$|\1logs/wrapper.log|' "${IGNITION_INSTALL_LOCATION}/data/ignition.conf"
+
             # Look for declared HOST variables and add the other associated ones via add_gw_to_init
             looper=GATEWAY_NETWORK_${i:=0}_HOST
             while [ ! -z ${!looper:-} ]; do
