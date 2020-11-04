@@ -1,9 +1,9 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.0.16`, `8.0`, `latest`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
-* [`nightly`, `nightly-edge` (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
-* [`7.9.16`, `7.9`, (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
-* [`7.9.16-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`8.0.16`, `8.0`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
+* [`8.1.0`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
+* [`7.9.16`, `7.9`  (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`7.9.16-edge`, `7.9-edge`  (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
 ## Quick Reference
 
@@ -54,6 +54,7 @@ For older versions (prior to 8.0.14), you can specify the image format with a `-
 _New with Ignition 8.0.14 as of 2020-06-24_
 
 If you want to run the Ignition Maker Edition variant, supply some additional environment variables with the container launch.  You'll need to acquire a _Maker Edition_ license from Inductive Automation to use this image variant.  More information [here](https://inductiveautomation.com/ignition/maker-edition).
+
 
 * `IGNITION_EDITION=maker` - Specifies Maker Edition
 * `IGNITION_LICENSE_KEY=ABCD_1234` - Supply your license key

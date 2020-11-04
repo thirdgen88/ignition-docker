@@ -17,15 +17,12 @@ include ../.env
 	$(IGNITION_VERSION_CHECK)
 	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=STABLE -t ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --tag ${BASE_IMAGE_NAME}:8.0
-	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --tag ${BASE_IMAGE_NAME}:latest
 
 .push-registry:
 	@echo "======== PUSHING AND TAGGING IMAGES TO REGISTRY ========"
 	docker push ${BASE_IMAGE_NAME}:${IGNITION_VERSION}
 	docker tag ${BASE_IMAGE_NAME}:${IGNITION_VERSION} ${BASE_IMAGE_NAME}:8.0
 	docker push ${BASE_IMAGE_NAME}:8.0
-	docker tag ${BASE_IMAGE_NAME}:${IGNITION_VERSION} ${BASE_IMAGE_NAME}:latest
-	docker push ${BASE_IMAGE_NAME}:latest
 
 ### BUILD TARGETS ###
 all:

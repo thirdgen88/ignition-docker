@@ -142,9 +142,9 @@ perform_commissioning() {
     if [ ${upgrade_check_result} -eq -1 ]; then
         local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
         local auth_salt=$(date +%s | sha256sum | head -c 8)
-        local auth_pwhash=$(echo -en ${GATEWAY_ADMIN_PASSWORD}${auth_salt} | sha256sum - | cut -c -64)
+        local auth_pwhash=$(printf %s "${GATEWAY_ADMIN_PASSWORD}${auth_salt}" | sha256sum - | cut -c -64) 
         local auth_password="[${auth_salt}]${auth_pwhash}"
-        local auth_payload='{"id":"authentication","step":"authSetup","data":{"username":"'${auth_user}'","password":"'${auth_password}'"}}'
+        local auth_payload=$(jq -ncM --arg user "$auth_user" --arg pass "$auth_password" '{ id: "authentication", step:"authSetup", data: { username: $user, password: $pass }}')
         evaluate_post_request "${url}" "${auth_payload}" 201 "${phase}" "Configuring Authentication"
 
         echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
@@ -301,6 +301,7 @@ enable_disable_modules() {
     declare -A module_definition_mappings
     module_definition_mappings["Alarm Notification-module.modl"]="alarm-notification"
     module_definition_mappings["Allen-Bradley Drivers-module.modl"]="allen-bradley-drivers"
+    module_definition_mappings["BACnet Driver-module.modl"]="bacnet-driver"
     module_definition_mappings["DNP3-Driver.modl"]="dnp3-driver"
     module_definition_mappings["Enterprise Administration-module.modl"]="enterprise-administration"
     module_definition_mappings["Logix Driver-module.modl"]="logix-driver"

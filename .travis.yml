@@ -9,6 +9,7 @@ env:
   matrix:
     - BUILD_TARGET=.multibuild-7.9 DOCKER_MULTI_ARCH=linux/amd64
     - BUILD_TARGET=.multibuild-8.0 DOCKER_MULTI_ARCH=linux/arm,linux/amd64,linux/arm64
+    - BUILD_TARGET=.multibuild-8.1 DOCKER_MULTI_ARCH=linux/arm,linux/amd64,linux/arm64
 
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
