@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
 ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.16/20200907-0933/zip-installers/Ignition-linux-64-7.9.16.zip"
-ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="05b038d7a19f4e07209036dd2248768e2979dc4f44857a659225611a8b60699d"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="b80802c63c9a50bf7930cd795f48f03b11a42985facf462a42df75e260d99cfa"
 ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.16/20200907-0933/zip-installers/Ignition-linux-64-7.9.16.zip"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="05b038d7a19f4e07209036dd2248768e2979dc4f44857a659225611a8b60699d"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="b80802c63c9a50bf7930cd795f48f03b11a42985facf462a42df75e260d99cfa"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
 ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.16/20200907-0933/zip-installers/Ignition-linux-armhf-7.9.16.zip"
