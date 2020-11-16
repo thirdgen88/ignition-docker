@@ -17,9 +17,7 @@ Kevin Collins (independent Ignition enthusiast)
 
 * **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
 
-<!-- markdownlint-disable MD026 -->
 ## What is Ignition?
-<!-- markdownlint-enable MD037 -->
 
 ![Ignition Logo](https://inductiveautomation.com/static/images/logo_ignition_lg.png)
 
@@ -54,7 +52,6 @@ For older versions (prior to 8.0.14), you can specify the image format with a `-
 _New with Ignition 8.0.14 as of 2020-06-24_
 
 If you want to run the Ignition Maker Edition variant, supply some additional environment variables with the container launch.  You'll need to acquire a _Maker Edition_ license from Inductive Automation to use this image variant.  More information [here](https://inductiveautomation.com/ignition/maker-edition).
-
 
 * `IGNITION_EDITION=maker` - Specifies Maker Edition
 * `IGNITION_LICENSE_KEY=ABCD_1234` - Supply your license key
@@ -95,49 +92,48 @@ For examples and guidance on using the Ignition Docker Image alongside other ser
 
 _New with 7.9.10 Docker image as of 2018-12-29!_
 _New 8.0.x options added on 2019-04-27!_
+_New 8.1.x options added on 2020-11-15!_
 
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
 
-<!-- markdownlint-disable MD036 -->
 ### _Table 1 - General Configurability_
-<!-- markdownlint-enable MD036 -->
 
 For Ignition 8.x, you _must_ specify either `GATEWAY_ADMIN_PASSWORD` or `GATEWAY_RANDOM_ADMIN_PASSWORD` on container launch.  This will only affect the initial credentials for the gateway.  When restoring from a backup, the admin credentials specified through these environment variables will be set on initial restore, overriding the existing credentials from the gateway backup file.
 
-Variable                           | Description                                                            |
----------------------------------- | ---------------------------------------------------------------------- |
-`GATEWAY_SYSTEM_NAME`              | Set this to a string to drive the Ignition Gateway Name.
-`GATEWAY_USESSL`                   | Set to `true` to enforce connections to the gateway use SSL on port `8043`.
+Variable | Description |
+-------- | ----------- |
+`GATEWAY_SYSTEM_NAME` | Set this to a string to drive the Ignition Gateway Name.
+`GATEWAY_USESSL` | Set to `true` to enforce connections to the gateway use SSL on port `8043`.
 `GATEWAY_NETWORK_AUTOACCEPT_DELAY` | Number of _seconds_ to auto accept new certificates for incoming gateway network connections.
-`GATEWAY_INIT_MEMORY`              | Initial Java Heap Size
-`GATEWAY_MAX_MEMORY`               | Maximum Java Heap Size
-`GATEWAY_ADMIN_USERNAME`           | Gateway Admin Username (defaults to `admin`) _only for > 8.0.0_
-`GATEWAY_ADMIN_PASSWORD`           | Gateway Admin Password _only for > 8.0.0_
-`GATEWAY_RANDOM_ADMIN_PASSWORD`    | Set to `1` to generate random Gateway Admin Password _only for > 8.0.0_
-`GATEWAY_HTTP_PORT`                | Gateway HTTP Port (defaults to `8088`) _only for > 8.0.0_
-`GATEWAY_HTTPS_PORT`               | Gateway HTTP Port (defaults to `8043`) _only for > 8.0.0_
-`GATEWAY_MODULE_RELINK`            | Set to `true` to allow replacement of built-in modules
-`GATEWAY_JDBC_RELINK`              | Set to `true` to allow replacement of built-in JDBC drivers
-`GATEWAY_RESTORE_DISABLED`         | Set to `1` to perform gateway restore in disabled mode.
-`IGNITION_STARTUP_DELAY`           | Defaults to `60`, increase to allow for more time for initial gateway startup
-`IGNITION_COMMISSIONING_DELAY`     | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
-`IGNITION_EDITION`                 | Defaults to `FULL`, choose `FULL`, `EDGE`, or `MAKER` to set the Ignition Gateway type on initial launch
-`IGNITION_ACTIVATION_TOKEN`        | Token for automated gateway licensing/activation. **Required for _Maker_ edition.**
-`IGNITION_LICENSE_KEY`             | License Key for automated gateway licensing/activation. **Required for _Maker_ edition.**
+`GATEWAY_INIT_MEMORY` | Initial Java Heap Size
+`GATEWAY_MAX_MEMORY` | Maximum Java Heap Size
+`GATEWAY_ADMIN_USERNAME` | Gateway Admin Username (defaults to `admin`) _only for > 8.0.0_
+`GATEWAY_ADMIN_PASSWORD` | Gateway Admin Password _only for > 8.0.0_
+`GATEWAY_RANDOM_ADMIN_PASSWORD` | Set to `1` to generate random Gateway Admin Password _only for > 8.0.0_
+`GATEWAY_PUBLIC_HTTP_PORT` | Public Facing Gateway HTTP Port (defaults to _null_) _only for > 8.1.0_
+`GATEWAY_PUBLIC_HTTPS_PORT` | Public Facing Gateway HTTPS Port (defaults to _null_) _only for > 8.1.0_
+`GATEWAY_PUBLIC_ADDRESS` | Public Facing Gateway URL (defaults to _null_) _only for > 8.1.0_
+`GATEWAY_MODULE_RELINK` | Set to `true` to allow replacement of built-in modules
+`GATEWAY_JDBC_RELINK` | Set to `true` to allow replacement of built-in JDBC drivers
+`GATEWAY_RESTORE_DISABLED` | Set to `1` to perform gateway restore in disabled mode.
+`GATEWAY_SKIP_COMMISSIONING` | Set to `1` to skip automated gateway commissioning _only for > 8.1.0_
+`IGNITION_STARTUP_DELAY` | Defaults to `60`, increase to allow for more time for initial gateway startup
+`IGNITION_COMMISSIONING_DELAY` | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
+`IGNITION_EDITION` | Defaults to `FULL`, choose `FULL`, `EDGE`, or `MAKER` to set the Ignition Gateway type on initial launch
+`IGNITION_ACTIVATION_TOKEN` | Token for automated gateway licensing/activation. **Required for _Maker_ edition.**
+`IGNITION_LICENSE_KEY` | License Key for automated gateway licensing/activation. **Required for _Maker_ edition.**
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
-<!-- markdownlint-disable MD036 -->
 ### _Table 2 - Gateway Network Provisioning_
-<!-- markdownlint-enable MD036 -->
 
-Variable                       | Default | Description                                                          |
------------------------------- | ------- | -------------------------------------------------------------------- |
-`GATEWAY_NETWORK_n_HOST`       |         | Define host or IP to initiate outbound gateway network connection.
-`GATEWAY_NETWORK_n_PORT`       | `8060`  | Define port for connection (`8060` is default for SSL, `8088` for non-SSL)
-`GATEWAY_NETWORK_n_PINGRATE`   | _gw_    | Frequency in _milliseconds_ for remote machine pings
-`GATEWAY_NETWORK_n_ENABLED`    | _gw_    | Set to `false` to disable connection after creation
-`GATEWAY_NETWORK_n_ENABLESSL`  | `true`  | Set to `false` to use unencrypted connection.
+Variable | Default | Description |
+-------- | ------- | ----------- |
+`GATEWAY_NETWORK_n_HOST` | | Define host or IP to initiate outbound gateway network connection.
+`GATEWAY_NETWORK_n_PORT` | `8060`  | Define port for connection (`8060` is default for SSL, `8088` for non-SSL)
+`GATEWAY_NETWORK_n_PINGRATE` | _gw_ | Frequency in _milliseconds_ for remote machine pings
+`GATEWAY_NETWORK_n_ENABLED` | _gw_ | Set to `false` to disable connection after creation
+`GATEWAY_NETWORK_n_ENABLESSL` | `true` | Set to `false` to use unencrypted connection.
 
 Declaring automatically provisioned gateway network connections will require approval in the remote gateway configuration, unless it is being started at the same time with a nominal `GATEWAY_NETWORK_AUTOACCEPT_DELAY` setting.  
 
@@ -145,34 +141,30 @@ Creating an Ignition Gateway with the gateway name `spoke1` and a single outboun
 
     $ docker run -p 8088:8088 --name my-ignition -e GATEWAY_SYSTEM_NAME=spoke1 -e GATEWAY_NETWORK_0_HOST=10.11.12.13 -d kcollins/ignition:7.9.10
 
-<!-- markdownlint-disable MD036 -->
 ### _Table 3 - Logging Configurability_
-<!-- markdownlint-enable MD036 -->
 
 The Java Wrapper that Ignition uses has some specific configuration variables for logging that can be useful to adjust.  See the [Logging Configuration Properties](https://wrapper.tanukisoftware.com/doc/english/props-logging.html) documentation for the wrapper for more detailed information on some of these settings.
 
 If you need to ensure that all writes to the console log are available immediately after being produced, you will want to set `WRAPPER_CONSOLE_FLUSH` to `true`.  The default behavior is for the wrapper to utilize a buffered output to stdout/stderr and can result in some minor delays in log output.
 
-Variable                       | Default | Description                                                          |
------------------------------- | ------- | -------------------------------------------------------------------- |
-`WRAPPER_CONSOLE_FLUSH`        | _not overridden_  | Set to `true` to flush log buffer after each line. [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-flush.html)
-`WRAPPER_CONSOLE_LOGLEVEL`     | _not overridden_ | Customize the log level for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-loglevel.html)
-`WRAPPER_CONSOLE_FORMAT`       | _not overridden_    | Customize the format for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-format.html)
-`WRAPPER_SYSLOG_LOGLEVEL`      | _not overridden_ | Set the log level for syslog output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-loglevel.html)
-`WRAPPER_SYSLOG_LOCAL_HOST`    | _not overridden_ | Set the local host name reported in the remote syslog packets [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-local-host.html)
-`WRAPPER_SYSLOG_REMOTE_HOST`   | _not overridden_ | Specify the remote syslog server to send logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-host.html)
-`WRAPPER_SYSLOG_REMOTE_PORT`   | _not overridden_ | Specify the UDP port on which to transmit syslog logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-port.html)
+Variable | Default | Description |
+-------- | ------- | ----------- |
+`WRAPPER_CONSOLE_FLUSH` | _not overridden_ | Set to `true` to flush log buffer after each line. [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-flush.html)
+`WRAPPER_CONSOLE_LOGLEVEL` | _not overridden_ | Customize the log level for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-loglevel.html)
+`WRAPPER_CONSOLE_FORMAT` | _not overridden_ | Customize the format for console output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-console-format.html)
+`WRAPPER_SYSLOG_LOGLEVEL` | _not overridden_ | Set the log level for syslog output [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-loglevel.html)
+`WRAPPER_SYSLOG_LOCAL_HOST` | _not overridden_ | Set the local host name reported in the remote syslog packets [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-local-host.html)
+`WRAPPER_SYSLOG_REMOTE_HOST` | _not overridden_ | Specify the remote syslog server to send logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-host.html)
+`WRAPPER_SYSLOG_REMOTE_PORT` | _not overridden_ | Specify the UDP port on which to transmit syslog logs to [More Info](https://wrapper.tanukisoftware.com/doc/english/prop-syslog-remote-port.html)
 
-<!-- markdownlint-disable MD036 -->
 ### _Table 4 - Module Enable/Disable_
-<!-- markdownlint-enable MD036 -->
 
 _Added to the image as of 8.0.13!_
 
 See the section _How to enable/disable default modules_ further on in the documentation for more specifics on this feature.
 
-Variable                       | Default | Description                                                          |
------------------------------- | ------- | -------------------------------------------------------------------- |
+Variable | Default | Description |
+-------- | ------- | ----------- |
 `GATEWAY_MODULES_ENABLED` | `all` | Comma-delimited list of modules (if not `all`) that should be enabled on Gateway start |
 
 ## Connect to your Ignition instance
@@ -217,6 +209,18 @@ Getting a volume created is as simple as using a `-v` flag when starting your co
 This will start a new container and create (or attach, if it already exists) a data volume called `my-ignition-data` against `/var/lib/ignition/data` within the container, which is where Ignition stores all of the runtime data for the Gateway.  Removing the container now doesn't affect the persisted Gateway data and allows you to create and start another container (perhaps in a stack with other components like a database) and pick up where you left off.
 
 _NOTE_: If you need to integrate third-party modules, see below.  If you need to integrate custom python files directly into `/var/lib/ignition/user-lib/pylib`, you can bind-mount a directory under there.  
+
+## ALTERNATIVE: How to persist Gateway data
+
+When using named volumes, there is a behavior in Docker Engine that will automatically pre-populate existing files within the container image into your new/empty volume.  This behavior is not shared in all scenarios or in all container engines.  There is a new option for _8.1.x_ images that allows you to specify a volume at `/data`.  If you choose to mount a volume at this location, the entrypoint script will handle creating copying existing image data (if your volume has not been used by the image before) and creating symbolic links the previous `/var/lib/ignition/data` location to `/data`.
+
+Use this empty-volume-mode by re-targeting your volume to `/data`:
+
+    $ docker run -p 8088:8088 -v my-ignition-data:/data \
+        -e GATEWAY_ADMIN_PASSWORD=password \
+        -d kcollins/ignition:8.1
+
+Note: This mode also works with the short bind-mount syntax: `-v /path/to/gw/data:/data`
 
 ## How to enable/disable default modules
 

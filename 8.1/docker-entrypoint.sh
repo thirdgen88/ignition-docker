@@ -4,6 +4,7 @@ shopt -s nullglob
 
 # Local initialization
 INIT_FILE=/usr/local/share/ignition/data/init.properties
+XML_FILE=${IGNITION_INSTALL_LOCATION}/data/gateway.xml_clean
 CMD=( "$@" )
 WRAPPER_OPTIONS=( )
 JAVA_OPTIONS=( )
@@ -11,9 +12,12 @@ GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
-IGNITION_EDITION=$(echo ${IGNITION_EDITION:-FULL} | awk '{print tolower($0)}')
+GATEWAY_QUICKSTART_ENABLED=${GATEWAY_QUICKSTART_ENABLED:-true}
 EMPTY_VOLUME_PATH="/data"
 DATA_VOLUME_LOCATION=$(if [ -d "${EMPTY_VOLUME_PATH}" ]; then echo "${EMPTY_VOLUME_PATH}"; else echo "/var/lib/ignition/data"; fi)
+
+# Additional local initialization (used by background scripts)
+export IGNITION_EDITION=$(echo ${IGNITION_EDITION:-FULL} | awk '{print tolower($0)}')
 
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
@@ -22,8 +26,8 @@ add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
     if [ ! -z ${!2:-} ]; then
-        echo "Added Init Setting ${1}=${!2}"
-        echo "${1}=${!2}" >> $INIT_FILE
+        echo "init     | Added Init Setting ${1}=${!2}"
+        echo "${1}=${!2}" >> "${INIT_FILE}"
     fi
 }
 
@@ -59,6 +63,28 @@ add_gw_to_init () {
     add_to_init gateway.network.${1}.Port ${port}
 }
 
+# usage: add_to_xml KEY ENV_VAR_NAME
+#   ie: add_to_xml gateway.publicAddress.httpPort GATEWAY_PUBLIC_HTTP_PORT
+add_to_xml() {
+    # TODO(kcollins): this currently expects the gateway XML elements to be line-delimited, 
+    #                 should use an XML parser ideally.
+    local operation="Added"
+
+    # The below takes the first argument as the key and indirects to the second argument
+    # to assign the value.  It will skip if the value is undefined.
+    if [ ! -z ${!2:-} ]; then
+        existing_key_search=$(cat ${XML_FILE} | grep key=\"${1}\" || echo NONE)
+        if [ "${existing_key_search}" != "NONE" ]; then
+            # remove existing entry
+            sed -i "/${1}/d" "${XML_FILE}"
+            operation="Updated"
+        fi
+        # inject at end of list
+        sed -i 's|</properties>|<entry key="'${1}'">'${!2}'</entry>\n</properties>|' "${XML_FILE}"
+        echo "init     | ${operation} Gateway XML Setting ${1}=${!2}"
+    fi    
+}
+
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'
 # (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
@@ -68,7 +94,7 @@ file_env() {
     local fileVar="${var}_FILE"
     local def="${2:-}"
     if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-        echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
+        echo >&2 "init     | error: both $var and $fileVar are set (but are exclusive)"
         exit 1
     fi
     local val="$def"
@@ -81,142 +107,13 @@ file_env() {
     unset "$fileVar"
 }
 
-# usage: evaluate_post_request URL PAYLOAD EXPECTED_CODE PHASE DESC
-#   ie: evaluate_post_request http://localhost:8088/post-step '{"id":"edition","step":"edition","data":{"edition":"'maker'"}}' 201 "Commissioning" "Edition Selection"
-evaluate_post_request() {
-    local url="$1"
-    local payload="$2"
-    local expected_code="$3"
-    local phase="$4"
-    local desc="$5"
-
-    local response_output_file=$(mktemp)
-    local response_output=$(curl -o ${response_output_file} -i -H "content-type: application/json" -d "${payload}" "${url}" 2>&1)
-    local response_code_final=$(cat ${response_output_file} | grep -Po '(?<=^HTTP/1\.1 )([0-9]+)' | tail -n 1)
-
-    if [ -z "${response_code_final}" ]; then
-        response_code_final="NO HTTP RESPONSE DETECTED"
-    fi
-
-    if [ "${response_code_final}" != "${expected_code}" ]; then
-        echo >&2 "ERROR: Unexpected Response (${response_code_final}) during ${phase} phase: ${desc}"
-        cat >&2 ${response_output_file}
-        exit 1
-    else
-        # Cleanup temp file
-        if [ -e "${response_output_file}" ]; then rm "${response_output_file}"; fi
-    fi
-}
-
-# usage: perform_commissioning URL RESTORE_FLAG
-#   ie: perform_commissioning http://localhost:8088/post-step 1
-perform_commissioning() {
-    local url="$1"
-    local restore_flag_value="$2"
-    local phase="Commissioning"
-
-    echo "Performing commissioning actions..."
-
-    # Select Edition - Full, Edge, Maker
-    if [ "${EDITION_PHASE_REQUIRED}" == "1" ]; then
-        local edition_selection="${IGNITION_EDITION}"
-        if [ "${IGNITION_EDITION}" == "full" ]; then edition_selection=""; fi
-        local edition_selection_payload='{"id":"edition","step":"edition","data":{"edition":"'${edition_selection}'"}}'
-        evaluate_post_request "${url}" "${edition_selection_payload}" 201 "${phase}" "Edition Selection"
-        echo "  IGNITION_EDITION: ${IGNITION_EDITION}"
-    fi
-
-    # Register EULA Acceptance
-    local license_accept_payload='{"id":"license","step":"eula","data":{"accept":true}}'
-    evaluate_post_request "${url}" "${license_accept_payload}" 201 "${phase}" "License Acceptance"
-    echo "  EULA_STATUS: accepted"
-    
-    # Perform Activation (currently only for Maker edition)
-    if [ ${IGNITION_EDITION} == "maker" -a "${MAKER_EDITION_SUPPORTED}" == "1" ]; then
-        local activation_payload='{"id":"activation","data":{"licenseKey":"'${IGNITION_LICENSE_KEY}'","activationToken":"'${IGNITION_ACTIVATION_TOKEN}'"}}'
-        evaluate_post_request "${url}" "${activation_payload}" 201 "${phase}" "Online Activation"
-        echo "  IGNITION_LICENSE_KEY: ${IGNITION_LICENSE_KEY}"
-    fi
-
-    # Register Authentication Details
-    if [ ${upgrade_check_result} -eq -1 ]; then
-        local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
-        local auth_salt=$(date +%s | sha256sum | head -c 8)
-        local auth_pwhash=$(printf %s "${GATEWAY_ADMIN_PASSWORD}${auth_salt}" | sha256sum - | cut -c -64) 
-        local auth_password="[${auth_salt}]${auth_pwhash}"
-        local auth_payload=$(jq -ncM --arg user "$auth_user" --arg pass "$auth_password" '{ id: "authentication", step:"authSetup", data: { username: $user, password: $pass }}')
-        evaluate_post_request "${url}" "${auth_payload}" 201 "${phase}" "Configuring Authentication"
-
-        echo "  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
-        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
-    fi
-
-    # Register Port Configuration
-    local http_port="${GATEWAY_HTTP_PORT:=8088}"
-    local https_port="${GATEWAY_HTTPS_PORT:=8043}"
-    local use_ssl="${GATEWAY_USESSL:=false}"
-    local port_payload='{"id":"connections","step":"connections","data":{"http":'${http_port}',"https":'${https_port}',"useSSL":'${use_ssl}'}}'
-    evaluate_post_request "${url}" "${port_payload}" 201 "${phase}" "Configuring Connections"
-    echo "  GATEWAY_HTTP_PORT: ${GATEWAY_HTTP_PORT}"
-    echo "  GATEWAY_HTTPS_PORT: ${GATEWAY_HTTPS_PORT}"
-    # echo "  GATEWAY_USESSL: ${GATEWAY_USESSL}"
-
-    local finalize_key="start"
-    if [ "${EDITION_PHASE_REQUIRED}" == "1" ]; then
-        finalize_key="startGateway"
-    fi
-    local finalize_payload='{"id":"finished","data":{"'${finalize_key}'":true}}'
-    evaluate_post_request "${url}" "${finalize_payload}" 200 "${phase}" "Finalizing Gateway"
-}
-
-# usage: health_check PHASE_DESC DELAY_SECS TARGET|DETAILS
-#   ie: health_check "Gateway Commissioning" 60
-health_check() {
-    local phase="$1"
-    local delay=$2
-    local target=$3
-    local details="null"
-    if [[ "${target}" == *"|"* ]]; then
-        details=$(printf ${target} | cut -d \| -f 2)
-        target=$(printf ${target} | cut -d \| -f 1)
-    fi
-        
-
-    # Wait for a short period for the commissioning servlet to come alive
-    for ((i=${delay};i>0;i--)); do
-        raw_json=$(curl -s --max-time 3 -f http://localhost:8088/StatusPing || true)
-        state_value=$(echo ${raw_json} | jq -r '.["state"]')
-        details_value=$(echo ${raw_json} | jq -r '.["details"]')
-        if [ "${state_value}" == "${target}" -a "${details_value}" == "${details}" ]; then
-                break
-        fi
-        sleep 1
-    done
-    if [ "$i" -le 0 ]; then
-        echo >&2 "Failed to detect ${target} status during ${phase} after ${delay} delay."
-        exit 1
-    fi
-}
-
-# usage stop_process PID
-#   ie: stop_process 123
-stop_process() {
-    local pid="$1"
-
-    echo 'Shutting down interim provisioning gateway...'
-    if ! kill -s TERM "$pid" || ! wait "$pid"; then
-        echo >&2 'Ignition initialization process failed.'
-        exit 1
-    fi
-}
-
 # usage register_jdbc RELINK_ENABLED DB_LOCATION
 #   ie: register_jdbc true /var/lib/ignition/data/db/config.idb
 register_jdbc() {
     if [ ! -d "/jdbc" ]; then
         return 0  # Silently exit if there is no /jdbc path
     else
-        echo "Searching for third-party JDBC drivers..."
+        echo "init     | Searching for third-party JDBC drivers..."
     fi
 
     local RELINK_ENABLED="${1:-false}"
@@ -238,7 +135,7 @@ register_jdbc() {
         local jdbc_targetclasspath=""
         
         if [ -h "${jdbc_destpath}" ]; then
-            echo "Skipping Linked JDBC Driver: ${jdbc_basename}"
+            echo "init     | Skipping Linked JDBC Driver: ${jdbc_basename}"
             continue
         fi
 
@@ -263,18 +160,18 @@ register_jdbc() {
 
         if [ -e "${jdbc_destpath}" ]; then
             if [ "${RELINK_ENABLED}" != true ]; then
-                echo "Skipping existing JDBC driver: ${jdbc_basename}"
+                echo "init     | Skipping existing JDBC driver: ${jdbc_basename}"
                 continue
             fi
-            echo "Relinking JDBC Driver: ${jdbc_basename}"
+            echo "init     | Relinking JDBC Driver: ${jdbc_basename}"
             rm "${jdbc_destpath}"
         else
-            echo "Linking JDBC Driver: ${jdbc_basename}"
+            echo "init     | Linking JDBC Driver: ${jdbc_basename}"
         fi
         ln -s "${jdbc_sourcepath}" "${jdbc_destpath}"
 
         # Update JDBCDRIVERS table
-        echo "  Updating JDBCDRIVERS table for classname ${jdbc_targetclassname}"
+        echo "init     |  Updating JDBCDRIVERS table for classname ${jdbc_targetclassname}"
         "${SQLITE3[@]}" "UPDATE JDBCDRIVERS SET JARFILE='${jdbc_basename}' WHERE CLASSNAME='${jdbc_targetclassname}'"
     done
 }
@@ -295,7 +192,7 @@ enable_disable_modules() {
         fi
     fi
 
-    echo -n "Processing Module Enable/Disable... "
+    echo -n "init     | Processing Module Enable/Disable... "
 
     # Perform removal of built-in modules
     declare -A module_definition_mappings
@@ -366,13 +263,26 @@ enable_disable_modules() {
     echo
 }
 
+# usage disable_quickstart DB_LOCATION
+#   ie: disable_quickstart /var/lib/ignition/data/db/config.idb
+disable_quickstart() {
+    local DB_LOCATION="${1}"
+    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
+
+    local quickstart_already_complete=$( "${SQLITE3[@]}" "SELECT 1 FROM SRFEATURES WHERE moduleid = '' and featurekey = 'quickStart'" )
+    if [ "${quickstart_already_complete}" != "1" ]; then
+        echo "init     | Disabling QuickStart Function"
+        "${SQLITE3[@]}" "INSERT INTO SRFEATURES ( moduleid, featurekey ) VALUES ('', 'quickStart')"
+    fi
+}
+
 # usage register_modules RELINK_ENABLED DB_LOCATION
 #   ie: register_modules true /var/lib/ignition/data/db/config.idb
 register_modules() {
     if [ ! -d "/modules" ]; then
         return 0  # Silently exit if there is no /modules path
     else
-        echo "Searching for third-party modules..."
+        echo "init     | Searching for third-party modules..."
     fi
 
     local RELINK_ENABLED="${1:-false}"
@@ -380,7 +290,7 @@ register_modules() {
     local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
     # Remove Invalid Symbolic Links
-    find ${IGNITION_INSTALL_LOCATION}/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find ${IGNITION_INSTALL_LOCATION}/user-lib/modules -type l ! -exec test -e {} \; -exec echo "init     | Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new modules and tie into db
     for module in /modules/*.modl; do
@@ -390,19 +300,19 @@ register_modules() {
         local keytool=$(which keytool)
 
         if [ -h "${module_destpath}" ]; then
-            echo "Skipping Linked Module: ${module_basename}"
+            echo "init     | Skipping Linked Module: ${module_basename}"
             continue
         fi
 
         if [ -e "${module_destpath}" ]; then
             if [ "${RELINK_ENABLED}" != true ]; then
-                echo "Skipping existing module: ${module_basename}"
+                echo "init     | Skipping existing module: ${module_basename}"
                 continue
             fi
-            echo "Relinking Module: ${module_basename}"
+            echo "init     | Relinking Module: ${module_basename}"
             rm "${module_destpath}"
         else
-            echo "Linking Module: ${module_basename}"
+            echo "init     | Linking Module: ${module_basename}"
         fi
         ln -s "${module_sourcepath}" "${module_destpath}"
 
@@ -410,15 +320,15 @@ register_modules() {
         local cert_info=$( unzip -qq -c "${module_sourcepath}" certificates.p7b | $keytool -printcert -v | head -n 9 )
         local thumbprint=$( echo "${cert_info}" | grep -A 2 "Certificate fingerprints" | grep SHA1 | cut -d : -f 2- | sed -e 's/\://g' | awk '{$1=$1;print tolower($0)}' )
         local subject_name=$( echo "${cert_info}" | grep -A 1 "Certificate\[1\]:" | grep -Po '^Owner: CN=\K(.+)(?=, OU)' | sed -e 's/"//g' )
-        echo "  Thumbprint: ${thumbprint}"
-        echo "  Subject Name: ${subject_name}"
+        echo "init     |  Thumbprint: ${thumbprint}"
+        echo "init     |  Subject Name: ${subject_name}"
         local next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" )
         local thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
         if [ "${thumbprint_already_exists}" != "1" ]; then
-            echo "  Accepting Certificate as CERTIFICATES_ID=${next_certificates_id}"
+            echo "init     |  Accepting Certificate as CERTIFICATES_ID=${next_certificates_id}"
             "${SQLITE3[@]}" "INSERT INTO CERTIFICATES (CERTIFICATES_ID, THUMBPRINT, SUBJECTNAME) VALUES (${next_certificates_id}, x'${thumbprint}', '${subject_name}'); UPDATE SEQUENCES SET val=${next_certificates_id} WHERE name='CERTIFICATES_SEQ'"
         else
-            echo "  Thumbprint already found in CERTIFICATES table, skipping INSERT"
+            echo "init     |  Thumbprint already found in CERTIFICATES table, skipping INSERT"
         fi
 
         # Populate EULAS table
@@ -427,10 +337,10 @@ register_modules() {
         local module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' )
         local module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
         if [ "${module_id_already_exists}" != "1" ]; then
-            echo "  Accepting License on your behalf as EULAS_ID=${next_eulas_id}"
+            echo "init     |  Accepting License on your behalf as EULAS_ID=${next_eulas_id}"
             "${SQLITE3[@]}" "INSERT INTO EULAS (EULAS_ID, MODULEID, CRC) VALUES (${next_eulas_id}, '${module_id}', ${license_crc32}); UPDATE SEQUENCES SET val=${next_eulas_id} WHERE name='EULAS_SEQ'"
         else
-            echo "  License EULA already found in EULAS table, skipping INSERT"
+            echo "init     |  License EULA already found in EULAS table, skipping INSERT"
         fi
     done
 }
@@ -503,22 +413,6 @@ check_for_upgrade() {
         image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
     fi
 
-    # Check version compatibility for Maker edition
-    local version_check=$(compare_versions "${image_version}" "8.0.14")
-    if [ ${version_check} -lt 0 -a "${IGNITION_EDITION}" == "maker" ]; then
-        echo >&2 "Maker Edition not supported until 8.0.14"
-        exit ${version_check}
-    else
-        export MAKER_EDITION_SUPPORTED=1
-    fi
-
-    # Evaluate version to determine if Edition Selection phase is required in Gateway Commissioning
-    if [ ${version_check} -ge 0 ]; then  # We're greater or equal to 8.0.14 (set above)
-        export EDITION_PHASE_REQUIRED=1
-    else
-        export EDITION_PHASE_REQUIRED=0
-    fi
-
     if [ ! -f "${DATA_VOLUME_LOCATION}/db/config.idb" ]; then
         # Fresh/new instance, case 1
         echo "${image_version}" > "${init_file_path}"
@@ -526,30 +420,34 @@ check_for_upgrade() {
 
         # Check if we're using an empty-volume mode
         if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+            echo "init     | New Volume detected at /data, copying existing image files prior to Gateway Launch..."
             # Move in-image data volume contents to /data to seed the volume
-            mv ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
+            cp -dpRu ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp"
+            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
             ln -s "${DATA_VOLUME_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/temp"
+            ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             # Drop another symbolic link in original location for compatibility
-            rmdir /var/lib/ignition/data
+            rm -rf /var/lib/ignition/data
             ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
         fi
     else
         # Check if we're using an empty-volume mode (concurrent run)
         if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+            echo "init     | Existing Volume detected at /data, relinking data volume locations prior to Gateway Launch..."
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp"
+            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
             ln -s "${DATA_VOLUME_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/temp"
+            ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             # Remove the in-image data folder (that presumably is still fresh, extra safety check here)
             # and place a symbolic link to the /data volume for compatibility
             if [ ! -a "/var/lib/ignition/data/db/config.idb" ]; then
                 rm -rf /var/lib/ignition/data
                 ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
             else
-                echo "WARNING: Existing gateway instance detected in /var/lib/ignition/data, skipping purge/relink to ${DATA_VOLUME_LOCATION}..."
+                echo "init     | WARNING: Existing gateway instance detected in /var/lib/ignition/data, skipping purge/relink to ${DATA_VOLUME_LOCATION}..."
             fi
         fi
 
@@ -564,9 +462,9 @@ check_for_upgrade() {
                 ;;
             1 | 2)
                 # Init file present, upgrade required
-                echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
+                echo "init     | Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
-                echo "Performing additional required volume updates"
+                echo "init     | Performing additional required volume updates"
                 mkdir -p "${DATA_VOLUME_LOCATION}/temp"
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
@@ -577,23 +475,23 @@ check_for_upgrade() {
                 fi
                 ;;
             -1)
-                echo >&2 "Unknown error encountered during version comparison, aborting..."
+                echo >&2 "init     | Unknown error encountered during version comparison, aborting..."
                 exit ${version_check}
                 ;;
             -2)
-                echo >&2 "Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
+                echo >&2 "init     | Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
                 exit ${version_check}
                 ;;
             -3)
-                echo >&2 "Unexpected version syntax found in volume (${volume_version})"
+                echo >&2 "init     | Unexpected version syntax found in volume (${volume_version})"
                 exit ${version_check}
                 ;;
             -4)
-                echo >&2 "Unexpected version syntax found in image (${image_version})"
+                echo >&2 "init     | Unexpected version syntax found in image (${image_version})"
                 exit ${version_check}
                 ;;
             *)
-                echo >&2 "Unexpected error (${version_check}) during upgrade checks"
+                echo >&2 "init     | Unexpected error (${version_check}) during upgrade checks"
                 exit ${version_check}
                 ;;
         esac
@@ -608,7 +506,7 @@ if [ "$1" = './ignition-gateway' ]; then
     if [[ ${IGNITION_EDITION} =~ "maker" ]]; then
         # Ensure that License Key and Activation Tokens are supplied
         if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" -o -z "${IGNITION_LICENSE_KEY+x}" ]; then
-            echo >&2 "Missing ENV variables, must specify activation token and license key for edition: ${IGNITION_EDITION}"
+            echo >&2 "init     | Missing ENV variables, must specify activation token and license key for edition: ${IGNITION_EDITION}"
             exit 1
         fi
     else
@@ -616,7 +514,7 @@ if [ "$1" = './ignition-gateway' ]; then
           maker | full | edge)
             ;;
           *)
-            echo >&2 "Invalid edition (${IGNITION_EDITION}) specified, must be 'maker', 'edge', or 'full'"
+            echo >&2 "init     | Invalid edition (${IGNITION_EDITION}) specified, must be 'maker', 'edge', or 'full'"
             exit 1
             ;;
         esac
@@ -629,7 +527,7 @@ if [ "$1" = './ignition-gateway' ]; then
                 "wrapper.java.initmemory=${GATEWAY_INIT_MEMORY}"
                 )
         else
-            echo >&2 "Invalid minimum memory specification, must be integer in MB: ${GATEWAY_INIT_MEMORY}"
+            echo >&2 "init     | Invalid minimum memory specification, must be integer in MB: ${GATEWAY_INIT_MEMORY}"
             exit 1
         fi    
     fi
@@ -640,13 +538,13 @@ if [ "$1" = './ignition-gateway' ]; then
                 "wrapper.java.maxmemory=${GATEWAY_MAX_MEMORY}"
             )
         else
-            echo >&2 "Invalid max memory specification, must be integer in MB: ${GATEWAY_MAX_MEMORY}"
+            echo >&2 "init     | Invalid max memory specification, must be integer in MB: ${GATEWAY_MAX_MEMORY}"
             exit 1
         fi
     fi
 
     if [ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]; then
-        echo >&2 "Invalid memory specification, min (${GATEWAY_MIN_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
+        echo >&2 "init     | Invalid memory specification, min (${GATEWAY_MIN_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
         exit 1
     fi
 
@@ -654,7 +552,7 @@ if [ "$1" = './ignition-gateway' ]; then
     empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
     std_volume_check=$(grep -q -E " /var/lib/ignition/data " /proc/mounts; echo $?)
     if [[ ${empty_volume_check} -eq 0 && ${std_volume_check} -eq 0 ]]; then
-        echo >&2 "ERROR: Double Volume Link (to both /var/lib/ignition/data and ${EMPTY_VOLUME_PATH}) Detected, aborting..."
+        echo >&2 "init     | ERROR: Double Volume Link (to both /var/lib/ignition/data and ${EMPTY_VOLUME_PATH}) Detected, aborting..."
         exit 1
     fi
 
@@ -694,10 +592,10 @@ if [ "$1" = './ignition-gateway' ]; then
         if [ ${upgrade_check_result} -eq -1 ]; then
             # Check Prerequisites
             file_env 'GATEWAY_ADMIN_PASSWORD'
-            if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
-                echo >&2 'ERROR: Gateway is not initialized and no password option is specified '
-                echo >&2 '  You need to specify either GATEWAY_ADMIN_PASSWORD or GATEWAY_RANDOM_ADMIN_PASSWORD'
-                exit 1
+            if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" -a "$GATEWAY_SKIP_COMMISSIONING" != "1" ]; then
+                echo 'init     | WARNING: Gateway is not initialized and no password option is specified '
+                echo 'init     |   Disabling automated gateway commissioning, manual input will be required'
+                export GATEWAY_SKIP_COMMISSIONING=1
             fi
 
             # Compute random password if env variable is defined
@@ -709,6 +607,37 @@ if [ "$1" = './ignition-gateway' ]; then
             rm -f "${DATA_VOLUME_LOCATION}/init.properties"
             add_to_init "SystemName" GATEWAY_SYSTEM_NAME
             add_to_init "UseSSL" GATEWAY_USESSL
+
+            GATEWAY_PUBLIC_HTTP_PORT=${GATEWAY_PUBLIC_HTTP_PORT:-}
+            GATEWAY_PUBLIC_HTTPS_PORT=${GATEWAY_PUBLIC_HTTPS_PORT:-}
+            GATEWAY_PUBLIC_ADDRESS=${GATEWAY_PUBLIC_ADDRESS:-}
+            if [ ! -z "${GATEWAY_PUBLIC_HTTP_PORT}${GATEWAY_PUBLIC_HTTPS_PORT}${GATEWAY_PUBLIC_ADDRESS}" ]; then
+                # Something is defined, check individuals
+                common_errors=( )
+                if [[ ! ${GATEWAY_PUBLIC_HTTP_PORT} =~ ^[0-9]+$ ]]; then
+                    common_errors+=( 'init     |   - HTTP Port not specified or is invalid' )
+                fi
+                if [[ ! ${GATEWAY_PUBLIC_HTTPS_PORT} =~ ^[0-9]+$ ]]; then
+                    common_errors+=( 'init     |   - HTTPS Port not specified or is invalid' )
+                fi
+                if [ -z "${GATEWAY_PUBLIC_ADDRESS}" ]; then
+                    common_errors+=( 'init     |   - Address not specified' )
+                fi
+                if [ ${#common_errors[@]} -gt 0 ]; then
+                    echo >&2 'init     | ERROR: Gateway Public HTTP/HTTPS/Address must be specified together:'
+                    for error in "${common_errors[@]}"; do
+                        echo >&2 "$error"
+                    done
+                    exit 1
+                fi
+                
+                GATEWAY_PUBLIC_AUTODETECT="false"
+
+                add_to_xml 'gateway.publicAddress.autoDetect' GATEWAY_PUBLIC_AUTODETECT
+                add_to_xml 'gateway.publicAddress.address' GATEWAY_PUBLIC_ADDRESS
+                add_to_xml 'gateway.publicAddress.httpPort' GATEWAY_PUBLIC_HTTP_PORT
+                add_to_xml 'gateway.publicAddress.httpsPort' GATEWAY_PUBLIC_HTTPS_PORT
+            fi
 
             # Look for declared HOST variables and add the other associated ones via add_gw_to_init
             looper=GATEWAY_NETWORK_${i:=0}_HOST
@@ -731,17 +660,6 @@ if [ "$1" = './ignition-gateway' ]; then
                 export GATEWAY_RESTORE_REQUIRED="0"
             fi
         fi
-    
-        # Initialize Gateway
-        echo "Provisioning will be logged here: ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log"
-        "${CMD[@]}" > ${IGNITION_INSTALL_LOCATION}/logs/provisioning.log 2>&1 &
-        pid="$!"
-
-        echo "Waiting for commissioning servlet to become active..."
-        health_check "Commissioning Phase" ${IGNITION_COMMISSIONING_DELAY:=30} "RUNNING|COMMISSIONING"
-        perform_commissioning "http://localhost:8088/post-step"
-        health_check "Post Commissioning" ${IGNITION_STARTUP_DELAY:=120} "RUNNING"
-        stop_process $pid
     fi
     
     # Gateway Restore
@@ -753,17 +671,17 @@ if [ "$1" = './ignition-gateway' ]; then
             restore_file_path="${IGNITION_INSTALL_LOCATION}/data/__restore_$(( $(date '+%s%N') / 1000000)).gwbk"
         fi
 
-        echo 'Placing restore file into location...'
+        echo 'init     | Placing restore file into location...'
         cp /restore.gwbk "${restore_file_path}"
 
-        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) ]]; then
-            pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
-            unzip -q "${restore_file_path}" db_backup_sqlite.idb
-            register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-            register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-            zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ ${ZIP_EXIT_CODE:=$?} == 12 ]; then echo "No changes to internal database needed for linked modules."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
-            popd > /dev/null 2>&1
-        fi
+        # Update gateway backup with module, jdbc definitions
+        pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
+        unzip -q "${restore_file_path}" db_backup_sqlite.idb
+        disable_quickstart "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+        register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+        register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ ${ZIP_EXIT_CODE:=$?} == 12 ]; then echo "No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
+        popd > /dev/null 2>&1
     else
         register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
@@ -772,7 +690,10 @@ if [ "$1" = './ignition-gateway' ]; then
     # Perform module enablement/disablement
     enable_disable_modules ${GATEWAY_MODULES_ENABLED}
 
-    echo 'Starting Ignition Gateway...'
+    # Initiate Commissioning Helper in Background
+    /usr/local/bin/perform-commissioning.sh &
+    
+    echo 'init     | Starting Ignition Gateway...'
 fi
 
-exec "${CMD[@]}"
+"${CMD[@]}"
