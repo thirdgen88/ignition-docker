@@ -61,12 +61,14 @@ evaluate_post_request() {
 # usage: perform_commissioning
 perform_commissioning() {
     local phase="Commissioning"
-    local bootstrap_url="http://localhost:${port}/bootstrap"
-    local url="http://localhost:${port}/post-step"
+    local base_url="http://localhost:${port}"
+    local bootstrap_url="${base_url}/bootstrap"
+    local get_url="${base_url}/get-step"
+    local url="${base_url}/post-step"
     
     commissioning_steps_raw=$(curl -s -f ${bootstrap_url})
     local ignition_edition=$(echo "$commissioning_steps_raw" | jq -r '.edition')
-    if [ "${ignition_edition}" == "NOT_SET" -a "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then
+    if [ "${ignition_edition}" == "NOT_SET" ]; then
         local edition_selection="${IGNITION_EDITION}"
         if [ "${IGNITION_EDITION}" == "full" ]; then edition_selection=""; fi
         local edition_selection_payload='{"id":"edition","step":"edition","data":{"edition":"'${edition_selection}'"}}'
@@ -77,16 +79,9 @@ perform_commissioning() {
     fi
 
     echo -n "init     | Gathering required commissioning steps: "
-    local commissioning_steps=( )
-    if [ "${GATEWAY_SKIP_COMMISSIONING}" == "1" ]; then
-        commissioning_steps+=(
-            "connections"
-        )
-    else
-        commissioning_steps+=(
-            $((echo "$commissioning_steps_raw" | jq -r '.steps | keys | @sh') | tr -d \')
-        )
-    fi
+    commissioning_steps=(
+        $((echo "$commissioning_steps_raw" | jq -r '.steps | keys | @sh') | tr -d \')
+    )
     echo "${commissioning_steps[*]}"
 
     # activation
@@ -97,7 +92,7 @@ perform_commissioning() {
     fi
 
     # authSetup
-    if [[ ${commissioning_steps[@]} =~ "authSetup" ]]; then
+    if [[ ${commissioning_steps[@]} =~ "authSetup" && "${GATEWAY_PROMPT_PASSWORD}" != "1" ]]; then
         local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
         local auth_salt=$(date +%s | sha256sum | head -c 8)
         local auth_pwhash=$(printf %s "${GATEWAY_ADMIN_PASSWORD}${auth_salt}" | sha256sum - | cut -c -64) 
@@ -111,14 +106,18 @@ perform_commissioning() {
 
     # connections
     if [[ ${commissioning_steps[@]} =~ "connections" ]]; then
+        # Retrieve default port configuration from get-step payload
+        connection_info_raw=$(curl -s -f "${get_url}?step=connections")
         # Register Port Configuration
-        local http_port="8088"
-        local https_port="8043"
+        local http_port="$(echo ${connection_info_raw} | jq -r '.data[] | select(.name=="httpPort").port')"
+        local https_port="$(echo ${connection_info_raw} | jq -r '.data[] | select(.name=="httpsPort").port')"
+        local gan_port="$(echo ${connection_info_raw} | jq -r '.data[] | select(.name=="ganPort").port')"
         local use_ssl="${GATEWAY_USESSL:=false}"
-        local port_payload='{"id":"connections","step":"connections","data":{"http":'${http_port}',"https":'${https_port}',"useSSL":'${use_ssl}'}}'
+        local port_payload='{"id":"connections","step":"connections","data":{"http":'${http_port:=8088}',"https":'${https_port:=8043}',"gan":'${gan_port:=8060}',"useSSL":'${use_ssl}'}}'
         evaluate_post_request "${url}" "${port_payload}" 201 "${phase}" "Configuring Connections"
         echo "init     |  GATEWAY_HTTP_PORT: ${http_port}"
         echo "init     |  GATEWAY_HTTPS_PORT: ${https_port}"
+        echo "init     |  GATEWAY_NETWORK_PORT: ${gan_port}"
         echo "init     |  GATEWAY_USESSL: ${GATEWAY_USESSL}"
     fi
 
@@ -130,7 +129,7 @@ perform_commissioning() {
     fi
 
     # finalize
-    if [ "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then
+    if [ "${GATEWAY_PROMPT_PASSWORD}" != "1" ]; then
         local finalize_payload='{"id":"finished","data":{"startGateway":true}}'
         evaluate_post_request "${url}" "${finalize_payload}" 200 "${phase}" "Finalizing Gateway"
         echo "init     |  COMMISSIONING: finalized"

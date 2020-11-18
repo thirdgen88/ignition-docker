@@ -595,7 +595,7 @@ if [ "$1" = './ignition-gateway' ]; then
             if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" -a "$GATEWAY_SKIP_COMMISSIONING" != "1" ]; then
                 echo 'init     | WARNING: Gateway is not initialized and no password option is specified '
                 echo 'init     |   Disabling automated gateway commissioning, manual input will be required'
-                export GATEWAY_SKIP_COMMISSIONING=1
+                export GATEWAY_PROMPT_PASSWORD=1
             fi
 
             # Compute random password if env variable is defined
@@ -691,7 +691,9 @@ if [ "$1" = './ignition-gateway' ]; then
     enable_disable_modules ${GATEWAY_MODULES_ENABLED}
 
     # Initiate Commissioning Helper in Background
-    /usr/local/bin/perform-commissioning.sh &
+    if [ "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then
+        /usr/local/bin/perform-commissioning.sh &
+    fi
     
     echo 'init     | Starting Ignition Gateway...'
 fi
