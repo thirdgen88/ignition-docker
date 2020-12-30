@@ -21,13 +21,13 @@ include ../.env
 .multibuild-full:
 	@echo "======== BUILDING IGNITION FULL IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=FULL -t ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
+	docker buildx build ${DOCKER_BUILDX_CACHE_OPTS} ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=FULL -t ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION} --tag ${BASE_IMAGE_NAME}:7.9
 .multibuild-edge: CACHE_TAG=cache-${IGNITION_VERSION}-edge
 .multibuild-edge:
 	@echo "======== BUILDING IGNITION EDGE IMAGE AND PUSHING TO REGISTRY (MULTI ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
-	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
+	docker buildx build ${DOCKER_BUILDX_CACHE_OPTS} ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} --build-arg BUILD_EDITION=EDGE -t ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-edge --tag ${BASE_IMAGE_NAME}:7.9-edge
 
 .push-registry: .push-registry-full .push-registry-edge
