@@ -424,9 +424,8 @@ check_for_upgrade() {
             # Move in-image data volume contents to /data to seed the volume
             cp -dpRu ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
-            ln -s "${DATA_VOLUME_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/temp"
             ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             # Drop another symbolic link in original location for compatibility
             rm -rf /var/lib/ignition/data
@@ -437,9 +436,8 @@ check_for_upgrade() {
         if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
             echo "init     | Existing Volume detected at /data, relinking data volume locations prior to Gateway Launch..."
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
-            ln -s "${DATA_VOLUME_LOCATION}/temp" "${IGNITION_INSTALL_LOCATION}/temp"
             ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             # Remove the in-image data folder (that presumably is still fresh, extra safety check here)
             # and place a symbolic link to the /data volume for compatibility
@@ -464,8 +462,6 @@ check_for_upgrade() {
                 # Init file present, upgrade required
                 echo "init     | Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
-                echo "init     | Performing additional required volume updates"
-                mkdir -p "${DATA_VOLUME_LOCATION}/temp"
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
                 if [ ${version_check} -eq 1 ]; then 
