@@ -87,7 +87,7 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM debian:buster-slim as final
+FROM ubuntu:20.04 as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 ARG BUILD_EDITION
@@ -96,11 +96,18 @@ ARG BUILD_EDITION
 ENV BUILD_EDITION ${BUILD_EDITION:-FULL}
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu jq tini
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu jq tini locales && \
+    rm -rf /var/lib/apt/lists/* && \
+    sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8
 
-# Setup Install Targets
-ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
-ENV IGNITION_INSTALL_USERHOME="/home/ignition"
+# Setup Install Targets and Locale Settings
+ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition" \
+    IGNITION_INSTALL_USERHOME="/home/ignition" \
+    LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
 # Build Arguments for UID/GID
 ARG IGNITION_UID
