@@ -111,9 +111,9 @@ ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition" \
 
 # Build Arguments for UID/GID
 ARG IGNITION_UID
-ENV IGNITION_UID ${IGNITION_UID:-999}
 ARG IGNITION_GID
-ENV IGNITION_GID ${IGNITION_GID:-999}
+ENV IGNITION_UID=${IGNITION_UID:-999} \
+    IGNITION_GID=${IGNITION_GID:-999}
 
 # Setup dedicated user, map file permissions, and set execution flags
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
@@ -131,7 +131,7 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
     CMD curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep RUNNING
 
 # Setup Port Expose
-EXPOSE 8088 8043 8000
+EXPOSE 8088 8060 8043 8000
 
 # Launch Ignition
 USER ${IGNITION_UID}
@@ -141,9 +141,7 @@ WORKDIR ${IGNITION_INSTALL_LOCATION}
 ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 
 # Copy in Entrypoint and helper scripts
-COPY docker-entrypoint.sh /usr/local/bin/
-COPY accept-gwnetwork.sh /usr/local/bin/
-COPY perform-commissioning.sh /usr/local/bin/
+COPY *.sh /usr/local/bin/
 
 # Prepare Execution Settings
 ENTRYPOINT [ "tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh" ]
