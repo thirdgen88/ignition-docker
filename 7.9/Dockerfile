@@ -64,7 +64,8 @@ RUN mkdir -p /var/lib/ignition && \
     ln -s /var/lib/ignition/user-lib user-lib && \
     ln -s /var/lib/ignition/data/temp temp && \
     ln -s /var/lib/ignition/data/temp /var/lib/ignition/temp && \
-    ln -s /var/log/ignition logs
+    ln -s /var/log/ignition logs && \
+    ln -s /var/lib/ignition/data/metro-keystore webserver/metro-keystore
 
 # Apply Ignition Edge marker if applicable
 RUN if [[ "${BUILD_EDITION}" == *"EDGE"* ]]; then \

@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="8.1.1"
+ARG IGNITION_VERSION="8.1.2"
 
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
@@ -13,20 +13,20 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.1/20201208-0843/Ignition-linux-64-8.1.1.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="47471fb69e64c57acee891c1afa4a8a943edfc53e47d418261e034a2d58398f3"
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.2-SNAPSHOT/Ignition-linux-64-8.1.2-SNAPSHOT.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.2/20210203-1115/Ignition-linux-64-8.1.2.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="8ac797c63e0c2371484bc780c0bfa8c2c5bdb6d0a92132372caeac8fc2ad80f0"
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.3-SNAPSHOT/Ignition-linux-64-8.1.3-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.1/20201208-0843/Ignition-linux-armhf-8.1.1.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="0bae5fef15ca988f9e34a1ea319c505073ecc2081eb6400dfc62b87e967bab7a"
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.2-SNAPSHOT/Ignition-linux-armhf-8.1.2-SNAPSHOT.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.2/20210203-1115/Ignition-linux-armhf-8.1.2.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="0a6aba86849d2d1fd2c8f2774bda7bc1d3f8072cb5effc258bb6631a37055e4b"
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.3-SNAPSHOT/Ignition-linux-armhf-8.1.3-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.1/20201208-0843/Ignition-linux-aarch64-8.1.1.zip"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="865b9731f5422f664be52b897edd2fa539d8a75132fa8ae21e384e754ee2ea6a"
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.2-SNAPSHOT/Ignition-linux-aarch64-8.1.2-SNAPSHOT.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.2/20210203-1115/Ignition-linux-aarch64-8.1.2.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="681bc83fcfb682cbf297553899e6e66aa75b09b385ec1d05aa72bd7220952d8e"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.3-SNAPSHOT/Ignition-linux-aarch64-8.1.3-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
@@ -66,11 +66,9 @@ RUN mkdir -p jre-tmp
 RUN mkdir -p /var/lib/ignition && \
     mv data /var/lib/ignition/ && \
     mv user-lib /var/lib/ignition/ && \
-    mv temp /var/lib/ignition/data && \
     mv logs /var/log/ignition && \
     ln -s /var/lib/ignition/data data && \
     ln -s /var/lib/ignition/user-lib user-lib && \
-    ln -s /var/lib/ignition/data/temp temp && \
     ln -s /var/log/ignition logs && \
     ln -s /var/lib/ignition/data/metro-keystore webserver/metro-keystore
 
@@ -89,7 +87,7 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM debian:buster-slim as final
+FROM ubuntu:20.04 as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 ARG BUILD_EDITION
@@ -98,17 +96,24 @@ ARG BUILD_EDITION
 ENV BUILD_EDITION ${BUILD_EDITION:-FULL}
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu jq tini
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu jq tini locales && \
+    rm -rf /var/lib/apt/lists/* && \
+    sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8
 
-# Setup Install Targets
-ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
-ENV IGNITION_INSTALL_USERHOME="/home/ignition"
+# Setup Install Targets and Locale Settings
+ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition" \
+    IGNITION_INSTALL_USERHOME="/home/ignition" \
+    LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
 # Build Arguments for UID/GID
 ARG IGNITION_UID
-ENV IGNITION_UID ${IGNITION_UID:-999}
 ARG IGNITION_GID
-ENV IGNITION_GID ${IGNITION_GID:-999}
+ENV IGNITION_UID=${IGNITION_UID:-999} \
+    IGNITION_GID=${IGNITION_GID:-999}
 
 # Setup dedicated user, map file permissions, and set execution flags
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
@@ -126,7 +131,7 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
     CMD curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep RUNNING
 
 # Setup Port Expose
-EXPOSE 8088 8043 8000
+EXPOSE 8088 8060 8043 8000
 
 # Launch Ignition
 USER ${IGNITION_UID}
@@ -136,9 +141,7 @@ WORKDIR ${IGNITION_INSTALL_LOCATION}
 ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 
 # Copy in Entrypoint and helper scripts
-COPY docker-entrypoint.sh /usr/local/bin/
-COPY accept-gwnetwork.sh /usr/local/bin/
-COPY perform-commissioning.sh /usr/local/bin/
+COPY *.sh /usr/local/bin/
 
 # Prepare Execution Settings
 ENTRYPOINT [ "tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh" ]
