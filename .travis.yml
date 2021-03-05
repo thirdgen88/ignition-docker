@@ -11,7 +11,7 @@ jobs:
   include:
     - name: Ignition Nightly Docker Image
       if: branch = nightly
-      env: BUILD_TARGET=multibuild-nightly DOCKER_MULTI_ARCH=linux/arm,linux/amd64,linux/arm64
+      env: BUILD_TARGET=multibuild-nightly DOCKER_MULTI_ARCH=linux/amd64,linux/arm64
     - name: Ignition 7.9 Docker Image
       if: branch = master
       env: BUILD_TARGET=.multibuild-7.9 DOCKER_MULTI_ARCH=linux/amd64,linux/arm
