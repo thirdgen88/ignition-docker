@@ -116,6 +116,7 @@ Variable | Description |
 `GATEWAY_JDBC_RELINK` | Set to `true` to allow replacement of built-in JDBC drivers
 `GATEWAY_RESTORE_DISABLED` | Set to `1` to perform gateway restore in disabled mode.
 `GATEWAY_SKIP_COMMISSIONING` | Set to `1` to skip automated gateway commissioning _only for > 8.1.0_
+`GATEWAY_DEBUG_ENABLED` | Set to `1` to add JVM args for remote gateway debugging _only for > 8.1.3_
 `IGNITION_STARTUP_DELAY` | Defaults to `60`, increase to allow for more time for initial gateway startup
 `IGNITION_COMMISSIONING_DELAY` | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
 `IGNITION_EDITION` | Defaults to `FULL`, choose `FULL`, `EDGE`, or `MAKER` to set the Ignition Gateway type on initial launch
@@ -179,19 +180,6 @@ The `docker exec` command allows you to run commands inside of a Docker containe
 The Ignition Gateway Wrapper log is available through the Docker container's log:
 
     $ docker logs my-ignition
-
-## Using a custom gateway configuration file
-
-The `ignition.conf` file can be used to customize the gateway launch parameters and other aspects of its configuration (such as Java heap memory allocation, garbage collector configuration, and developer mode settings).  If you wish to utilize a custom `ignition.conf` file, you can create a copy of that file in a directory on your host computer and then mount that file as `/var/lib/ignition/data/ignition.conf` inside the `ignition` container.
-
-If `/path/to/custom/ignition.conf` is the path and filename of your custom Ignition gateway configuration file, you can start the `ignition` container with the following command:
-
-    $ docker run --name my-ignition \
-        -v /path/to/custom/ignition.conf:/var/lib/ignition/data/ignition.conf \
-        -e GATEWAY_ADMIN_PASSWORD=password \
-        -d kcollins/ignition:tag
-
-This will start a new container named `my-ignition` that utilizes the `ignition.conf` file located at `/path/to/custom/ignition.conf` on the host computer.  Note that linking the file into the container in this way (versus mounting a containing folder) may cause unexpected behavior in editing this file on the host with the container running.  Since this file is only read on startup of the container, there shouldn't be any real issues with this methodology (since an edit to this file will necessitate restarting the container).
 
 # Features
 
@@ -283,6 +271,8 @@ Note that if you wish to remove a third-party module from your gateway, you will
 
 If you wish to overwrite a built-in module with one from the bind-mount path, declare an environment variable `GATEWAY_MODULE_RELINK=true`.  This will cause the built-in module to be removed and the new one linked in its place prior to gateway startup.
 
+**UPDATE:** As of 8.1.x, third-party modules will not be available on the _first_ launch of a fresh gateway (subsequent restarts will work just fine).  This is due to the internal database not being created yet.  Use of a pre-configured gateway backup (even an empty one) bind-mounted to `/restore.gwbk` is recommended if you need to have full module functionality on first-launch.
+
 ## How to integrate third party JDBC drivers
 
 _New with latest 7.9.13 and 8.0.7 images as of 2020-01-25!_
@@ -302,6 +292,8 @@ To automatically link any associated third-party JDBC driver `*.jar` files, plac
 Note that if you remove the JDBC driver `.jar` file in the future, the `JDBCDRIVERS` database table within your gateway configuration database will likely still have the filename definition there, expecting a file to be available.
 
 If you wish to link in a JDBC driver with the same name as a built-in driver, declare an environment variable `GATEWAY_JDBC_RELINK=true`.  This will cause the built-in JDBC driver to be removed and the new one linked in its place prior to gateway startup.
+
+**UPDATE:** As of 8.1.x, third-party jdbc will not be available on the _first_ launch of a fresh gateway (subsequent restarts will work just fine).  This is due to the internal database not being created yet.  Use of a pre-configured gateway backup (even an empty one) bind-mounted to `/restore.gwbk` is recommended if you need to have full module functionality on first-launch.
 
 ## Upgrading a volume-persisted Ignition Container
 

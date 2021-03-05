@@ -7,12 +7,11 @@ DB_LOCATION="${2}"
 DB_FILE=$(basename "${DB_LOCATION}")
 
 function main() {
-    local delay=$1
-    local target=$2
-
-    # if we're looking for config.idb and it is not present, begin waiting for creation
-    if [ ! -f "${DB_LOCATION}" -a "${DB_FILE}" == "config.idb" ]; then
-        grep -m 1 "internal database \"${DB_FILE}\" started up successfully" <(tail -F -q -n 0 /var/log/ignition/wrapper.log) > /dev/null 2>&1
+    if [ ! -d "/jdbc" ]; then
+        return 0  # Silently exit if there is no /jdbc path
+    elif [ ! -f "${DB_LOCATION}" ]; then
+        echo "init     | WARNING: $(basename ${DB_LOCATION}) not found, skipping jdbc registration"
+        return 0
     fi
 
     register_jdbc
@@ -21,15 +20,8 @@ function main() {
 function register_jdbc() {
     local SQLITE3=( sqlite3 "${DB_LOCATION}" )
     
-    if [ ! -d "/jdbc" ]; then
-        return 0  # Silently exit if there is no /jdbc path
-    elif [ ! -f "${DB_LOCATION}" ]; then
-        echo "init     | WARNING: $(basename ${DB_LOCATION}) not found, skipping jdbc registration"
-        return 0
-    else
-        echo "init     | Searching for third-party JDBC drivers..."
-    fi
-
+    echo "init     | Searching for third-party JDBC drivers..."
+    
     # Get List of JDBC Drivers
     JDBC_CLASSNAMES=( $( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;") )
     JDBC_CLASSPATHS=( $(echo ${JDBC_CLASSNAMES[@]} | sed 's/\./\//g') )

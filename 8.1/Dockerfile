@@ -59,6 +59,9 @@ RUN mkdir ignition && \
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
 
+# Modify ignition.sh file
+RUN sed -E -i 's/^(PIDFILE_CHECK_PID=true)/#\1/' ignition.sh
+
 # Add jre-tmp folder in base ignition location
 RUN mkdir -p jre-tmp
 
@@ -125,6 +128,7 @@ RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${IGNITION_INSTALL_LOCATION}
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
+RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -143,13 +147,8 @@ ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 # Copy in Entrypoint and helper scripts
 COPY *.sh /usr/local/bin/
 
+STOPSIGNAL SIGINT
+
 # Prepare Execution Settings
 ENTRYPOINT [ "tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh" ]
-CMD [ "./ignition-gateway" \
-    , "data/ignition.conf" \
-    , "wrapper.syslog.ident=Ignition-Gateway" \
-    , "wrapper.pidfile=./Ignition-Gateway.pid" \
-    , "wrapper.name=Ignition-Gateway" \
-    , "wrapper.displayname=Ignition-Gateway" \
-    , "wrapper.statusfile=./Ignition-Gateway.status" \
-    , "wrapper.java.statusfile=./Ignition-Gateway.java.status" ]  
+CMD [ "./ignition-gateway" ]

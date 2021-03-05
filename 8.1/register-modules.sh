@@ -7,12 +7,11 @@ DB_LOCATION="${2}"
 DB_FILE=$(basename "${DB_LOCATION}")
 
 function main() {
-    local delay=$1
-    local target=$2
-
-    # if we're looking for config.idb and it is not present, begin waiting for creation
-    if [ ! -f "${DB_LOCATION}" -a "${DB_FILE}" == "config.idb" ]; then
-        grep -m 1 "internal database \"${DB_FILE}\" started up successfully" <(tail -F -q -n 0 /var/log/ignition/wrapper.log) > /dev/null 2>&1
+    if [ ! -d "/modules" ]; then
+        return 0  # Silently exit if there is no /modules path
+    elif [ ! -f "${DB_LOCATION}" ]; then
+        echo "init     | WARNING: $(basename ${DB_LOCATION}) not found, skipping module registration"
+        return 0
     fi
 
     register_modules
@@ -21,14 +20,7 @@ function main() {
 function register_modules() {
     local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
-    if [ ! -d "/modules" ]; then
-        return 0  # Silently exit if there is no /modules path
-    elif [ ! -f "${DB_LOCATION}" ]; then
-        echo "init     | WARNING: $(basename ${DB_LOCATION}) not found, skipping module registration"
-        return 0
-    else
-        echo "init     | Searching for third-party modules..."
-    fi
+    echo "init     | Searching for third-party modules..."
 
     # Remove Invalid Symbolic Links
     find ${IGNITION_INSTALL_LOCATION}/user-lib/modules -type l ! -exec test -e {} \; -exec echo "init     | Removing invalid symlink for {}" \; -exec rm {} \;
