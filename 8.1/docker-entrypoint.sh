@@ -6,8 +6,14 @@ shopt -s nullglob
 INIT_FILE=/usr/local/share/ignition/data/init.properties
 XML_FILE=${IGNITION_INSTALL_LOCATION}/data/gateway.xml_clean
 CMD=( "$@" )
+BASE_WRAPPER_OPTIONS=( 
+    "wrapper.console.loglevel=NONE"
+    "wrapper.logfile.format=PTM"
+    "wrapper.logfile.rollmode=NONE"
+)
 WRAPPER_OPTIONS=( )
-JAVA_OPTIONS=( )
+JVM_OPTIONS=( )
+APP_OPTIONS=( )
 GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
@@ -356,8 +362,46 @@ check_for_upgrade() {
     fi
 }
 
-# Collect additional arguments if we're running the gateway
-if [ "$1" = './ignition-gateway' ]; then
+# Only collect additional arguments if we're not running a shell
+if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
+    if [[ "$1" != './ignition-gateway' ]]; then
+        # CLI arguments are treated as JVM args, collect them for passing into java wrapper
+        for arg in ${CMD[@]}; do
+            case $arg in
+                wrapper.*)
+                    WRAPPER_OPTIONS+=( "${arg}" )
+                    ;;
+                *)
+                    JVM_OPTIONS+=( "${arg}" )
+                    ;;
+            esac
+        done
+
+        # Display captured arguments to log
+        if [[ ${#WRAPPER_OPTIONS[@]} -gt 0 ]]; then
+            echo "init     | Detected additional wrapper arguments:"
+            printf "init     |   %s\n" "${WRAPPER_OPTIONS[@]}"
+        fi
+        if [[ ${#JVM_OPTIONS[@]} -gt 0 ]]; then
+            echo "init     | Detected additional JVM arguments:"
+            printf "init     |   %s\n" "${JVM_OPTIONS[@]}"
+        fi
+
+        # Override CMD array now that processing is complete
+        CMD=( './ignition-gateway' )
+    fi
+
+    # Stage other base-level wrapper args
+    CMD+=( 
+        "data/ignition.conf"
+        "wrapper.syslog.ident=Ignition-Gateway"
+        "wrapper.pidfile=./Ignition-Gateway.pid"
+        "wrapper.name=Ignition-Gateway"
+        "wrapper.displayname=Ignition-Gateway"
+        "wrapper.statusfile=./Ignition-Gateway.status"
+        "wrapper.java.statusfile=./Ignition-Gateway.java.status"
+    )
+
     # Validate environment variables surrounding IGNITION_EDITION
     file_env 'IGNITION_ACTIVATION_TOKEN'
     file_env 'IGNITION_LICENSE_KEY'
@@ -417,9 +461,8 @@ if [ "$1" = './ignition-gateway' ]; then
     # Collect any other declared wrapper custom options by checking if any of the environment
     # variables are defined.  Ones that are defined will be added to the wrapper options.
     declare -A WRAPPER_CUSTOM_OPTIONS=(
-        [WRAPPER_CONSOLE_FLUSH]=wrapper.console.flush
-        [WRAPPER_CONSOLE_LOGLEVEL]=wrapper.console.loglevel
-        [WRAPPER_CONSOLE_FORMAT]=wrapper.console.format
+        [WRAPPER_CONSOLE_LOGLEVEL]=wrapper.logfile.loglevel
+        [WRAPPER_CONSOLE_FORMAT]=wrapper.logfile.format
         [WRAPPER_SYSLOG_LOGLEVEL]=wrapper.syslog.loglevel
         [WRAPPER_SYSLOG_LOCAL_HOST]=wrapper.syslog.local.host
         [WRAPPER_SYSLOG_REMOTE_HOST]=wrapper.syslog.remote.host
@@ -433,13 +476,33 @@ if [ "$1" = './ignition-gateway' ]; then
         fi
     done
 
-    # Combine CMD array with wrapper and explicit java options
-    if [ ! -z ${JAVA_OPTIONS:-} ]; then
-        JAVA_OPTIONS=( "--" "${JAVA_OPTIONS[@]}" )
+    if [[ "${GATEWAY_DEBUG_ENABLED}" == "1" ]]; then
+        JVM_OPTIONS+=( 
+            "-Xdebug"
+            "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000"
+        )
     fi
+
+    # Collect JVM Arguments
+    if [[ ${#JVM_OPTIONS[@]} -gt 0 ]]; then
+        jvm_args_filepath=$(mktemp /tmp/ignition_jvm_args-XXXXXXX)
+        printf "#encoding=UTF-8\n" >> "${jvm_args_filepath}"
+        for opt in "${JVM_OPTIONS[@]}"; do
+            printf "%s\n" "${opt}" >> "${jvm_args_filepath}"
+        done
+
+        WRAPPER_OPTIONS+=( "wrapper.java.additional_file=${jvm_args_filepath}" )
+    fi
+
+    # Add separator for App Arguments
+    if [[ ${#APP_OPTIONS[@]} -gt 0 ]]; then
+        APP_OPTIONS=( "--" "${APP_OPTIONS[@]}" )
+    fi
+
     CMD+=(
+        "${BASE_WRAPPER_OPTIONS[@]}"
         "${WRAPPER_OPTIONS[@]}"
-        "${JAVA_OPTIONS[@]}"
+        "${APP_OPTIONS[@]}"
     )
 
     # Check for Upgrade and Mark Initialization File
@@ -542,13 +605,8 @@ if [ "$1" = './ignition-gateway' ]; then
         popd > /dev/null 2>&1
     else
         target_db="${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
-        if [ -f "${target_db}" ]; then
-            register-modules.sh ${GATEWAY_MODULE_RELINK} "${target_db}"
-            register-jdbc.sh ${GATEWAY_JDBC_RELINK} "${target_db}"
-        else
-            register-modules.sh ${GATEWAY_MODULE_RELINK} "${target_db}" &
-            register-jdbc.sh ${GATEWAY_JDBC_RELINK} "${target_db}" &
-        fi
+        register-modules.sh ${GATEWAY_MODULE_RELINK} "${target_db}"
+        register-jdbc.sh ${GATEWAY_JDBC_RELINK} "${target_db}"
     fi
 
     # Perform module enablement/disablement
@@ -561,5 +619,7 @@ if [ "$1" = './ignition-gateway' ]; then
     
     echo 'init     | Starting Ignition Gateway...'
 fi
+
+unset GATEWAY_ADMIN_PASSWORD GATEWAY_ADMIN_PASSWORD_FILE
 
 "${CMD[@]}"

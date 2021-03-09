@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="8.1.2"
+ARG IGNITION_VERSION="8.1.3"
 
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
@@ -13,20 +13,20 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.2/20210203-1115/Ignition-linux-64-8.1.2.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="8ac797c63e0c2371484bc780c0bfa8c2c5bdb6d0a92132372caeac8fc2ad80f0"
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.3-SNAPSHOT/Ignition-linux-64-8.1.3-SNAPSHOT.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.3/20210303-0915/Ignition-linux-64-8.1.3.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="f2372214eba9b1e8730c834618990c94838a6c17ea2aa5460cb7cfdc551667b2"
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.4-SNAPSHOT/Ignition-linux-64-8.1.4-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.2/20210203-1115/Ignition-linux-armhf-8.1.2.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="0a6aba86849d2d1fd2c8f2774bda7bc1d3f8072cb5effc258bb6631a37055e4b"
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.3-SNAPSHOT/Ignition-linux-armhf-8.1.3-SNAPSHOT.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.3/20210303-0915/Ignition-linux-armhf-8.1.3.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="7aa563e53e49cb7cbfb2b3620aec0440b95a0576b09450b4b6abbab6d2953045"
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.4-SNAPSHOT/Ignition-linux-armhf-8.1.4-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.2/20210203-1115/Ignition-linux-aarch64-8.1.2.zip"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="681bc83fcfb682cbf297553899e6e66aa75b09b385ec1d05aa72bd7220952d8e"
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.3-SNAPSHOT/Ignition-linux-aarch64-8.1.3-SNAPSHOT.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.3/20210303-0915/Ignition-linux-aarch64-8.1.3.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="145867a6a5c9273a372f380aae27bdfc725ce5ec203fde4d2793157b40407d16"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.4-SNAPSHOT/Ignition-linux-aarch64-8.1.4-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
@@ -58,6 +58,9 @@ RUN mkdir ignition && \
 
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
+
+# Modify ignition.sh file
+RUN sed -E -i 's/^(PIDFILE_CHECK_PID=true)/#\1/' ignition.sh
 
 # Add jre-tmp folder in base ignition location
 RUN mkdir -p jre-tmp
@@ -125,6 +128,7 @@ RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${IGNITION_INSTALL_LOCATION}
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
+RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -143,13 +147,8 @@ ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 # Copy in Entrypoint and helper scripts
 COPY *.sh /usr/local/bin/
 
+STOPSIGNAL SIGINT
+
 # Prepare Execution Settings
 ENTRYPOINT [ "tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh" ]
-CMD [ "./ignition-gateway" \
-    , "data/ignition.conf" \
-    , "wrapper.syslog.ident=Ignition-Gateway" \
-    , "wrapper.pidfile=./Ignition-Gateway.pid" \
-    , "wrapper.name=Ignition-Gateway" \
-    , "wrapper.displayname=Ignition-Gateway" \
-    , "wrapper.statusfile=./Ignition-Gateway.status" \
-    , "wrapper.java.statusfile=./Ignition-Gateway.java.status" ]  
+CMD [ "./ignition-gateway" ]
