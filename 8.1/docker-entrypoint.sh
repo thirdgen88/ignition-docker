@@ -366,6 +366,7 @@ check_for_upgrade() {
 if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     if [[ "$1" != './ignition-gateway' ]]; then
         # CLI arguments are treated as JVM args, collect them for passing into java wrapper
+        set -o noglob
         for arg in ${CMD[@]}; do
             case $arg in
                 wrapper.*)
@@ -376,6 +377,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
                     ;;
             esac
         done
+        set +o noglob
 
         # Display captured arguments to log
         if [[ ${#WRAPPER_OPTIONS[@]} -gt 0 ]]; then
