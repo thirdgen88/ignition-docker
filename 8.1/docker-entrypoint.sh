@@ -481,7 +481,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     if [[ "${GATEWAY_DEBUG_ENABLED}" == "1" ]]; then
         JVM_OPTIONS+=( 
             "-Xdebug"
-            "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000"
+            "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:8000"
         )
     fi
 
