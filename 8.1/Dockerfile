@@ -80,9 +80,7 @@ RUN set -exo pipefail; \
     dpkg_arch="$(dpkg --print-architecture | awk '{print toupper($0)}')"; \
     jre_suffix_env="IGNITION_${dpkg_arch}_JRE_SUFFIX"; \
     if [ -n "${!jre_suffix_env}" ]; then \
-        tar -C lib/runtime -z -x -f lib/runtime/jre-${!jre_suffix_env}.tar.gz && \
-            grep JAVA_VERSION= lib/runtime/jre-${!jre_suffix_env}/release \
-            | cut -d'=' -f2- | sed 's/"//g' > lib/runtime/jre-${!jre_suffix_env}/version && \
+        ./ignition.sh checkRuntimes && \
         ln -s jre-${!jre_suffix_env} lib/runtime/jre; \
     else \
         echo "Architecture ${dpkg_arch} JRE suffix target not defined, aborting build"; \
