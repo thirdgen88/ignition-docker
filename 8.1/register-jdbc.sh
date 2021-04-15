@@ -1,4 +1,5 @@
 #!/bin/bash
+shopt -s nullglob
 
 # usage register_jdbc RELINK_ENABLED DB_LOCATION
 #   ie: register_jdbc true /var/lib/ignition/data/db/config.idb
