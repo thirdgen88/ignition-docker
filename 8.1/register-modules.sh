@@ -1,4 +1,5 @@
 #!/bin/bash
+shopt -s nullglob
 
 # usage register-modules.sh RELINK_ENABLED DB_LOCATION
 #   ie: register-modules.sh true /var/lib/ignition/data/db/config.idb
