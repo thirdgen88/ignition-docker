@@ -15,18 +15,18 @@ RUN apt-get update && apt-get install -y wget unzip
 # Ignition Downloader Parameters
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.5/20210428-1014/Ignition-linux-64-8.1.5.zip"
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="9cf7551658c40d6e28aafa0c9f0a4c2442b83b0f61e20334d11cac73ce73944e"
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.6-SNAPSHOT/Ignition-linux-64-8.1.6-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.7-SNAPSHOT/Ignition-linux-64-8.1.7-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
 ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.5/20210428-1014/Ignition-linux-armhf-8.1.5.zip"
 ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="82cad7c34ed3ad1d9478559549d397aeddcc4160a622f033e590ab645622dce0"
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.6-SNAPSHOT/Ignition-linux-armhf-8.1.6-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.7-SNAPSHOT/Ignition-linux-armhf-8.1.7-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.5/20210428-1014/Ignition-linux-aarch64-8.1.5.zip"
 ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="89c1cd54516c85a612bb70b668a31c693bd4972c1b8b3edee3853e7e28a0dcb1"
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.6-SNAPSHOT/Ignition-linux-aarch64-8.1.6-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.7-SNAPSHOT/Ignition-linux-aarch64-8.1.7-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
