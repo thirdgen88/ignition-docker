@@ -120,7 +120,8 @@ ENV IGNITION_UID=${IGNITION_UID:-999} \
 RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
     (getent group ${IGNITION_GID} > /dev/null 2>&1 || groupadd -r ignition -g ${IGNITION_GID}) && \
     (getent passwd ${IGNITION_UID} > /dev/null 2>&1 || useradd -r -d ${IGNITION_INSTALL_USERHOME} -u ${IGNITION_UID} -g ${IGNITION_GID} ignition) && \
-    chown ${IGNITION_UID}:${IGNITION_GID} ${IGNITION_INSTALL_USERHOME}
+    chown ${IGNITION_UID}:${IGNITION_GID} ${IGNITION_INSTALL_USERHOME} && \
+    mkdir -p /data && chown ${IGNITION_UID}:${IGNITION_GID} /data
 
 # Copy Ignition Installation from Build Image
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${IGNITION_INSTALL_LOCATION}

@@ -276,6 +276,7 @@ check_for_upgrade() {
     local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
     local init_file_path="$1"
     local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
+    local empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
 
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
     if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
@@ -288,7 +289,7 @@ check_for_upgrade() {
         upgrade_check_result=-1
 
         # Check if we're using an empty-volume mode
-        if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+        if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | New Volume detected at /data, copying existing image files prior to Gateway Launch..."
             # Move in-image data volume contents to /data to seed the volume
             cp -dpRu ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
@@ -302,7 +303,7 @@ check_for_upgrade() {
         fi
     else
         # Check if we're using an empty-volume mode (concurrent run)
-        if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+        if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | Existing Volume detected at /data, relinking data volume locations prior to Gateway Launch..."
             # Replace symbolic links in base install location
             rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
