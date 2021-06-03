@@ -134,6 +134,7 @@ Variable | Default | Description |
 `GATEWAY_NETWORK_n_PINGRATE` | _gw_ | Frequency in _milliseconds_ for remote machine pings
 `GATEWAY_NETWORK_n_ENABLED` | _gw_ | Set to `false` to disable connection after creation
 `GATEWAY_NETWORK_n_ENABLESSL` | `true` | Set to `false` to use unencrypted connection.
+`GATEWAY_NETWORK_UUID` | | Set to UUID (e.g. 37a088b3-aaaa-bbbb-8b0d-36897963cf52) to preload Gateway Network identity. _only for > 8.1.7_
 
 Declaring automatically provisioned gateway network connections will require approval in the remote gateway configuration, unless it is being started at the same time with a nominal `GATEWAY_NETWORK_AUTOACCEPT_DELAY` setting.  
 

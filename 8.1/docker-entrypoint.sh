@@ -19,6 +19,7 @@ GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
 GATEWAY_QUICKSTART_ENABLED=${GATEWAY_QUICKSTART_ENABLED:-true}
+declare -l GATEWAY_NETWORK_UUID=${GATEWAY_NETWORK_UUID:-}
 EMPTY_VOLUME_PATH="/data"
 DATA_VOLUME_LOCATION=$(if [ -d "${EMPTY_VOLUME_PATH}" ]; then echo "${EMPTY_VOLUME_PATH}"; else echo "/var/lib/ignition/data"; fi)
 
@@ -576,6 +577,15 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
             # Enable Gateway Network Certificate Auto Accept if Declared
             if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
                 accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+            fi
+
+            # Map in the Gateway Network UUID if Declared
+            if [ -n "${GATEWAY_NETWORK_UUID}" ]; then
+                if [[ "${GATEWAY_NETWORK_UUID}" =~ ^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$ ]]; then
+                    echo "${GATEWAY_NETWORK_UUID}" > ${IGNITION_INSTALL_LOCATION}/data/.uuid
+                else
+                    echo >&2 "init     | WARN: GATEWAY_NETWORK_UUID doesn't match expected pattern, skipping..."
+                fi
             fi
 
             # Perform some staging for the rest of the provisioning process
