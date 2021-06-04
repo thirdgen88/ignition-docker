@@ -1,6 +1,6 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.1.5`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
+* [`8.1.7`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
 * [`8.0.17`, `8.0`  (8.0/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.0/Dockerfile)
 * [`7.9.17`, `7.9`, `7.9.17-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
@@ -9,7 +9,7 @@
 * **Where to file issues**: https://github.com/thirdgen88/ignition-docker/issues
 
 * **Maintained by**:
-Kevin Collins (independent Ignition enthusiast)
+Kevin Collins
 
 * **Supported architectures**:
 `amd64`, `armhf`, `arm64`  ([More Info](#Multi-Architecture%20Builds))
@@ -134,6 +134,7 @@ Variable | Default | Description |
 `GATEWAY_NETWORK_n_PINGRATE` | _gw_ | Frequency in _milliseconds_ for remote machine pings
 `GATEWAY_NETWORK_n_ENABLED` | _gw_ | Set to `false` to disable connection after creation
 `GATEWAY_NETWORK_n_ENABLESSL` | `true` | Set to `false` to use unencrypted connection.
+`GATEWAY_NETWORK_UUID` | | Set to UUID (e.g. 37a088b3-aaaa-bbbb-8b0d-36897963cf52) to preload Gateway Network identity. _only for > 8.1.7_
 
 Declaring automatically provisioned gateway network connections will require approval in the remote gateway configuration, unless it is being started at the same time with a nominal `GATEWAY_NETWORK_AUTOACCEPT_DELAY` setting.  
 

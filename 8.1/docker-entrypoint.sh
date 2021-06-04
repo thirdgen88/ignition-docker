@@ -19,6 +19,7 @@ GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
 GATEWAY_QUICKSTART_ENABLED=${GATEWAY_QUICKSTART_ENABLED:-true}
+declare -l GATEWAY_NETWORK_UUID=${GATEWAY_NETWORK_UUID:-}
 EMPTY_VOLUME_PATH="/data"
 DATA_VOLUME_LOCATION=$(if [ -d "${EMPTY_VOLUME_PATH}" ]; then echo "${EMPTY_VOLUME_PATH}"; else echo "/var/lib/ignition/data"; fi)
 
@@ -276,6 +277,7 @@ check_for_upgrade() {
     local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
     local init_file_path="$1"
     local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
+    local empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
 
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
     if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
@@ -288,7 +290,7 @@ check_for_upgrade() {
         upgrade_check_result=-1
 
         # Check if we're using an empty-volume mode
-        if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+        if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | New Volume detected at /data, copying existing image files prior to Gateway Launch..."
             # Move in-image data volume contents to /data to seed the volume
             cp -dpRu ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
@@ -302,7 +304,7 @@ check_for_upgrade() {
         fi
     else
         # Check if we're using an empty-volume mode (concurrent run)
-        if [ "${DATA_VOLUME_LOCATION}" == "${EMPTY_VOLUME_PATH}" ]; then
+        if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | Existing Volume detected at /data, relinking data volume locations prior to Gateway Launch..."
             # Replace symbolic links in base install location
             rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
@@ -575,6 +577,15 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
             # Enable Gateway Network Certificate Auto Accept if Declared
             if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
                 accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+            fi
+
+            # Map in the Gateway Network UUID if Declared
+            if [ -n "${GATEWAY_NETWORK_UUID}" ]; then
+                if [[ "${GATEWAY_NETWORK_UUID}" =~ ^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$ ]]; then
+                    echo "${GATEWAY_NETWORK_UUID}" > ${IGNITION_INSTALL_LOCATION}/data/.uuid
+                else
+                    echo >&2 "init     | WARN: GATEWAY_NETWORK_UUID doesn't match expected pattern, skipping..."
+                fi
             fi
 
             # Perform some staging for the rest of the provisioning process
