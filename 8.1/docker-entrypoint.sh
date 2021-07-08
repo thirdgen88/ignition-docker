@@ -112,7 +112,7 @@ file_env() {
     fi
 
     if [[ -n "${val:-}" ]]; then
-    export "$var"="$val"
+        export "$var"="$val"
     fi
     unset "$fileVar"
 }
