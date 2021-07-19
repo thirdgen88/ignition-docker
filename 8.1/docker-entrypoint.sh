@@ -14,7 +14,6 @@ BASE_WRAPPER_OPTIONS=(
 WRAPPER_OPTIONS=( )
 JVM_OPTIONS=( )
 APP_OPTIONS=( )
-GWCMD_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
 GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
@@ -24,7 +23,8 @@ EMPTY_VOLUME_PATH="/data"
 DATA_VOLUME_LOCATION=$(if [ -d "${EMPTY_VOLUME_PATH}" ]; then echo "${EMPTY_VOLUME_PATH}"; else echo "/var/lib/ignition/data"; fi)
 
 # Additional local initialization (used by background scripts)
-export IGNITION_EDITION=$(echo ${IGNITION_EDITION:-FULL} | awk '{print tolower($0)}')
+IGNITION_EDITION=$(echo "${IGNITION_EDITION:-FULL}" | awk '{print tolower($0)}')
+export IGNITION_EDITION
 
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
@@ -32,7 +32,7 @@ export IGNITION_EDITION=$(echo ${IGNITION_EDITION:-FULL} | awk '{print tolower($
 add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
-    if [ ! -z ${!2:-} ]; then
+    if [ -n "${!2:-}" ]; then
         echo "init     | Added Init Setting ${1}=${!2}"
         echo "${1}=${!2}" >> "${INIT_FILE}"
     fi
@@ -52,22 +52,22 @@ add_gw_to_init () {
                )
 
     # Loop through the settings above and add_to_init
-    for key in ${!settings[@]}; do
+    for key in "${!settings[@]}"; do
         value=${settings[$key]}
-        if [ ! -z ${!value:-} ]; then
-            add_to_init gateway.network.${1}.${key} ${value}
+        if [ -n "${!value:-}" ]; then
+            add_to_init "gateway.network.${1}.${key}" "${value}"
         fi
     done
 
     # Handle EnableSSL explicitly, default to true if not specified
     enablessl=GATEWAY_NETWORK_${1}_ENABLESSL
     declare "$enablessl=${!enablessl:-true}"
-    add_to_init gateway.network.${1}.EnableSSL ${enablessl}
+    add_to_init "gateway.network.${1}.EnableSSL" "${enablessl}"
 
     # If EnableSSL defaulted to true and Port was not specified, default to 8060
     port=GATEWAY_NETWORK_${1}_PORT
     declare "$port=${!port:-8060}"
-    add_to_init gateway.network.${1}.Port ${port}
+    add_to_init "gateway.network.${1}.Port" "${port}"
 }
 
 # usage: add_to_xml KEY ENV_VAR_NAME
@@ -79,15 +79,15 @@ add_to_xml() {
 
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
-    if [ ! -z ${!2:-} ]; then
-        existing_key_search=$(cat ${XML_FILE} | grep key=\"${1}\" || echo NONE)
+    if [ -n "${!2:-}" ]; then
+        existing_key_search=$(grep "key=\"${1}\"" < "${XML_FILE}" || echo NONE)
         if [ "${existing_key_search}" != "NONE" ]; then
             # remove existing entry
             sed -i "/${1}/d" "${XML_FILE}"
             operation="Updated"
         fi
         # inject at end of list
-        sed -i 's|</properties>|<entry key="'${1}'">'${!2}'</entry>\n</properties>|' "${XML_FILE}"
+        sed -i 's|</properties>|<entry key="'"${1}"'">'"${!2}"'</entry>\n</properties>|' "${XML_FILE}"
         echo "init     | ${operation} Gateway XML Setting ${1}=${!2}"
     fi    
 }
@@ -173,24 +173,24 @@ enable_disable_modules() {
     fi
 
     # Read an array modules_enabled with the list of enabled module definitions
-    mapfile -d , -t modules_enabled <<< "$MODULES_ENABLED"
+    IFS=',' read -ra modules_enabled <<< "${MODULES_ENABLED}"
 
     # Find the currently present modules in the installation
-    mapfile -t modules_list < <(find "${modules_path}" -name '*.modl' -type f -printf "%f\n")
+    mapfile -d '' modules_list < <(find "${modules_path}" -name '*.modl' -type f -print0)
 
-    for module_filename in "${modules_list[@]}"; do
-        module_filepath="${modules_path}/${module_filename}"
+    for module_filepath in "${modules_list[@]}"; do
+        module_filename=$(basename "${module_filepath}")
         module_definition="${module_definition_mappings[${module_filename}]}"
 
         if [ -z "${module_definition}" ]; then
-            printf "\n  Unknown module ${module_filename}, skipping..."
+            printf "\n  Unknown module %s, skipping..." "${module_filename}"
             continue
         fi
         
         # Search for Module Definition in List of Modules Enabled
         module_found=0
         for (( n=0; n<${#modules_enabled[@]}; n++ )); do
-            if [ ${module_definition} = ${modules_enabled[$n]} ]; then
+            if [ "${module_definition}" = "${modules_enabled[$n]}" ]; then
                 module_found+=1
                 break
             fi
@@ -198,7 +198,7 @@ enable_disable_modules() {
         
         # If we didn't find it, move to disabled path
         if [ ${module_found} -eq 0 ]; then
-            printf "\n  Disabling '${module_filename}'"
+            printf "\n  Disabling '%s'" "${module_filename}"
             mv "${module_filepath}" "${modules_disabled_path}/"
         fi
     done
@@ -210,8 +210,8 @@ enable_disable_modules() {
 disable_quickstart() {
     local DB_LOCATION="${1}"
     local SQLITE3=( sqlite3 "${DB_LOCATION}" )
-
-    local quickstart_already_complete=$( "${SQLITE3[@]}" "SELECT 1 FROM SRFEATURES WHERE moduleid = '' and featurekey = 'quickStart'" )
+    local quickstart_already_complete
+    quickstart_already_complete=$( "${SQLITE3[@]}" "SELECT 1 FROM SRFEATURES WHERE moduleid = '' and featurekey = 'quickStart'" )
     if [ "${quickstart_already_complete}" != "1" ]; then
         echo "init     | Disabling QuickStart Function"
         "${SQLITE3[@]}" "INSERT INTO SRFEATURES ( moduleid, featurekey ) VALUES ('', 'quickStart')"
@@ -235,9 +235,9 @@ compare_versions() {
 
     # Extract Version Numbers
     [[ $image_version =~ $version_regex_pattern ]]
-    local image_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    local image_version_arr=( "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" )
     [[ $volume_version =~ $version_regex_pattern ]]
-    local volume_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    local volume_version_arr=( "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" )
     
     if [ ${#image_version_arr[@]} -ne 3 ]; then
         return_value=-4
@@ -257,10 +257,10 @@ compare_versions() {
         return_value=2  
         
         for (( i = 0; i < 3; i++ )); do
-            if [ ${volume_version_arr[$i]} -lt ${image_version_arr[$i]} ]; then
+            if [[ ${volume_version_arr[$i]} -lt ${image_version_arr[$i]} ]]; then
                 return_value=1  # Major Version Upgrade Detected, commissioning will be required
                 break
-            elif [ ${volume_version_arr[$i]} -gt ${image_version_arr[$i]} ]; then
+            elif [[ ${volume_version_arr[$i]} -gt ${image_version_arr[$i]} ]]; then
                 return_value=-2  # ... and flag lower case (invalid) if detected
                 break
             fi
@@ -279,12 +279,16 @@ compare_versions() {
 check_for_upgrade() {
     local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
     local init_file_path="$1"
-    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
-    local empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
+    local volume_version
+    local version_check
+    local image_version
+    image_version=$(grep gateway.version < "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | cut -d = -f 2 )
+    local empty_volume_check
+    empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
 
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
     if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
-        image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
+        image_version="${image_version//-SNAPSHOT/}"
     fi
 
     if [ ! -f "${DATA_VOLUME_LOCATION}/db/config.idb" ]; then
@@ -296,7 +300,7 @@ check_for_upgrade() {
         if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | New Volume detected at /data, copying existing image files prior to Gateway Launch..."
             # Move in-image data volume contents to /data to seed the volume
-            cp -dpRu ${IGNITION_INSTALL_LOCATION}/data/* "${DATA_VOLUME_LOCATION}/"
+            cp -dpRu "${IGNITION_INSTALL_LOCATION}/data/*" "${DATA_VOLUME_LOCATION}/"
             # Replace symbolic links in base install location
             rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
@@ -324,9 +328,9 @@ check_for_upgrade() {
         fi
 
         if [ -f "${init_file_path}" ]; then
-            local volume_version=$(cat ${init_file_path})
+            volume_version=$(cat "${init_file_path}")
         fi
-        local version_check=$(compare_versions "${image_version}" "${volume_version}")
+        version_check=$(compare_versions "${image_version}" "${volume_version}")
 
         case ${version_check} in
             0)
@@ -338,7 +342,7 @@ check_for_upgrade() {
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
-                if [ ${version_check} -eq 1 ]; then 
+                if [ "${version_check}" -eq 1 ]; then 
                     upgrade_check_result=-2
                 else
                     upgrade_check_result=1
@@ -346,23 +350,23 @@ check_for_upgrade() {
                 ;;
             -1)
                 echo >&2 "init     | Unknown error encountered during version comparison, aborting..."
-                exit ${version_check}
+                exit "${version_check}"
                 ;;
             -2)
                 echo >&2 "init     | Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
-                exit ${version_check}
+                exit "${version_check}"
                 ;;
             -3)
                 echo >&2 "init     | Unexpected version syntax found in volume (${volume_version})"
-                exit ${version_check}
+                exit "${version_check}"
                 ;;
             -4)
                 echo >&2 "init     | Unexpected version syntax found in image (${image_version})"
-                exit ${version_check}
+                exit "${version_check}"
                 ;;
             *)
                 echo >&2 "init     | Unexpected error (${version_check}) during upgrade checks"
-                exit ${version_check}
+                exit "${version_check}"
                 ;;
         esac
     fi
@@ -373,7 +377,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     if [[ "$1" != './ignition-gateway' ]]; then
         # CLI arguments are treated as JVM args, collect them for passing into java wrapper
         set -o noglob
-        for arg in ${CMD[@]}; do
+        for arg in "${CMD[@]}"; do
             case $arg in
                 wrapper.*)
                     WRAPPER_OPTIONS+=( "${arg}" )
@@ -415,7 +419,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     file_env 'IGNITION_LICENSE_KEY'
     if [[ ${IGNITION_EDITION} =~ "maker" ]]; then
         # Ensure that License Key and Activation Tokens are supplied
-        if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" -o -z "${IGNITION_LICENSE_KEY+x}" ]; then
+        if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" ] || [ -z "${IGNITION_LICENSE_KEY+x}" ]; then
             echo >&2 "init     | Missing ENV variables, must specify activation token and license key for edition: ${IGNITION_EDITION}"
             exit 1
         fi
@@ -431,30 +435,30 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     fi
 
     # Examine memory constraints and apply to Java arguments
-    if [ ! -z ${GATEWAY_INIT_MEMORY:-} ]; then
-        if [ ${GATEWAY_INIT_MEMORY} -ge 256 2> /dev/null ]; then
+    if [ -n "${GATEWAY_INIT_MEMORY:-}" ]; then
+        if [[ ${GATEWAY_INIT_MEMORY} =~ ^[0-9]+$ && ${GATEWAY_INIT_MEMORY} -ge 256 ]]; then
             WRAPPER_OPTIONS+=(
                 "wrapper.java.initmemory=${GATEWAY_INIT_MEMORY}"
                 )
         else
-            echo >&2 "init     | Invalid minimum memory specification, must be integer in MB: ${GATEWAY_INIT_MEMORY}"
+            echo >&2 "init     | Invalid minimum memory specification, must be integer in MB >= 256: ${GATEWAY_INIT_MEMORY}"
             exit 1
         fi    
     fi
 
-    if [ ! -z ${GATEWAY_MAX_MEMORY:-} ]; then
-        if [ ${GATEWAY_MAX_MEMORY} -ge 512 2> /dev/null ]; then
+    if [ -n "${GATEWAY_MAX_MEMORY:-}" ]; then
+        if [[ ${GATEWAY_MAX_MEMORY} =~ ^[0-9]+$ && ${GATEWAY_MAX_MEMORY} -ge 512 ]]; then
             WRAPPER_OPTIONS+=(
                 "wrapper.java.maxmemory=${GATEWAY_MAX_MEMORY}"
             )
         else
-            echo >&2 "init     | Invalid max memory specification, must be integer in MB: ${GATEWAY_MAX_MEMORY}"
+            echo >&2 "init     | Invalid max memory specification, must be integer in MB >= 512: ${GATEWAY_MAX_MEMORY}"
             exit 1
         fi
     fi
 
-    if [ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]; then
-        echo >&2 "init     | Invalid memory specification, min (${GATEWAY_MIN_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
+    if [[ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]]; then
+        echo >&2 "init     | Invalid memory specification, min (${GATEWAY_INIT_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
         exit 1
     fi
 
@@ -477,7 +481,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         [WRAPPER_SYSLOG_REMOTE_PORT]=wrapper.syslog.remote.port
     )
     for opt in "${!WRAPPER_CUSTOM_OPTIONS[@]}"; do
-        if [ ! -z ${!opt} ]; then
+        if [ -n "${!opt}" ]; then
             WRAPPER_OPTIONS+=(
                 "${WRAPPER_CUSTOM_OPTIONS[$opt]}=${!opt}"
             )
@@ -521,15 +525,16 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         if [ ${upgrade_check_result} -eq -1 ]; then
             # Check Prerequisites
             file_env 'GATEWAY_ADMIN_PASSWORD'
-            if [ -z "$GATEWAY_ADMIN_PASSWORD" -a -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" -a "$GATEWAY_SKIP_COMMISSIONING" != "1" ]; then
+            if [ -z "$GATEWAY_ADMIN_PASSWORD" ] && [ -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ] && [ "$GATEWAY_SKIP_COMMISSIONING" != "1" ]; then
                 echo 'init     | WARNING: Gateway is not initialized and no password option is specified '
                 echo 'init     |   Disabling automated gateway commissioning, manual input will be required'
                 export GATEWAY_PROMPT_PASSWORD=1
             fi
 
             # Compute random password if env variable is defined
-            if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
-               export GATEWAY_ADMIN_PASSWORD="$(pwgen -1 32)"
+            if [ -n "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then
+               GATEWAY_ADMIN_PASSWORD="$(pwgen -1 32)"
+               export GATEWAY_ADMIN_PASSWORD
             fi
 
             # Provision the init.properties file if we've got the environment variables for it
@@ -540,7 +545,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
             GATEWAY_PUBLIC_HTTP_PORT=${GATEWAY_PUBLIC_HTTP_PORT:-}
             GATEWAY_PUBLIC_HTTPS_PORT=${GATEWAY_PUBLIC_HTTPS_PORT:-}
             GATEWAY_PUBLIC_ADDRESS=${GATEWAY_PUBLIC_ADDRESS:-}
-            if [ ! -z "${GATEWAY_PUBLIC_HTTP_PORT}${GATEWAY_PUBLIC_HTTPS_PORT}${GATEWAY_PUBLIC_ADDRESS}" ]; then
+            if [ -n "${GATEWAY_PUBLIC_HTTP_PORT}${GATEWAY_PUBLIC_HTTPS_PORT}${GATEWAY_PUBLIC_ADDRESS}" ]; then
                 # Something is defined, check individuals
                 common_errors=( )
                 if [[ ! ${GATEWAY_PUBLIC_HTTP_PORT} =~ ^[0-9]+$ ]]; then
@@ -560,6 +565,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
                     exit 1
                 fi
                 
+                # shellcheck disable=SC2034
                 GATEWAY_PUBLIC_AUTODETECT="false"
 
                 add_to_xml 'gateway.publicAddress.autoDetect' GATEWAY_PUBLIC_AUTODETECT
@@ -570,7 +576,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
 
             # Look for declared HOST variables and add the other associated ones via add_gw_to_init
             looper=GATEWAY_NETWORK_${i:=0}_HOST
-            while [ ! -z ${!looper:-} ]; do
+            while [ -n "${!looper:-}" ]; do
                 # Add all available env parameters for this host to the init file
                 add_gw_to_init $i
                 # Index to the next HOST variable
@@ -579,13 +585,13 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
 
             # Enable Gateway Network Certificate Auto Accept if Declared
             if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
-                accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+                accept-gwnetwork.sh "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" &
             fi
 
             # Map in the Gateway Network UUID if Declared
             if [ -n "${GATEWAY_NETWORK_UUID}" ]; then
                 if [[ "${GATEWAY_NETWORK_UUID}" =~ ^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$ ]]; then
-                    echo "${GATEWAY_NETWORK_UUID}" > ${IGNITION_INSTALL_LOCATION}/data/.uuid
+                    echo "${GATEWAY_NETWORK_UUID}" > "${IGNITION_INSTALL_LOCATION}/data/.uuid"
                 else
                     echo >&2 "init     | WARN: GATEWAY_NETWORK_UUID doesn't match expected pattern, skipping..."
                 fi
@@ -616,18 +622,18 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
         unzip -q "${restore_file_path}" db_backup_sqlite.idb
         disable_quickstart "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-        register-modules.sh ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-        register-jdbc.sh ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [ ${ZIP_EXIT_CODE:=$?} == 12 ]; then echo "No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
+        register-modules.sh "${GATEWAY_MODULE_RELINK}" "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+        register-jdbc.sh "${GATEWAY_JDBC_RELINK}" "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
+        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [[ ${ZIP_EXIT_CODE:=$?} == 12 ]]; then echo "No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
         popd > /dev/null 2>&1
     else
         target_db="${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
-        register-modules.sh ${GATEWAY_MODULE_RELINK} "${target_db}"
-        register-jdbc.sh ${GATEWAY_JDBC_RELINK} "${target_db}"
+        register-modules.sh "${GATEWAY_MODULE_RELINK}" "${target_db}"
+        register-jdbc.sh "${GATEWAY_JDBC_RELINK}" "${target_db}"
     fi
 
     # Perform module enablement/disablement
-    enable_disable_modules ${GATEWAY_MODULES_ENABLED}
+    enable_disable_modules "${GATEWAY_MODULES_ENABLED}"
 
     # Initiate Commissioning Helper in Background
     if [ "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then

@@ -10,17 +10,17 @@ health_check() {
     local target=$2
     local details="null"
     if [[ "${target}" == *"|"* ]]; then
-        details=$(printf ${target} | cut -d \| -f 2)
-        target=$(printf ${target} | cut -d \| -f 1)
+        details=$(printf '%s' "${target}" | cut -d \| -f 2)
+        target=$(printf '%s' "${target}" | cut -d \| -f 1)
     fi
 
     # Wait for a short period for the commissioning servlet to come alive
     # TODO(kcollins): fix static port assignment of 8088
-    for ((i=${delay};i>0;i--)); do
+    for ((i=delay;i>0;i--)); do
         raw_json=$(curl -s --max-time 3 -f http://localhost:${port}/StatusPing || true)
-        state_value=$(echo ${raw_json} | jq -r '.["state"]')
-        details_value=$(echo ${raw_json} | jq -r '.["details"]')
-        if [ "${state_value}" == "${target}" -a "${details_value}" == "${details}" ]; then
+        state_value=$(echo "${raw_json}" | jq -r '.["state"]')
+        details_value=$(echo "${raw_json}" | jq -r '.["details"]')
+        if [ "${state_value}" == "${target}" ] && [ "${details_value}" == "${details}" ]; then
             break
         fi
         sleep 1
@@ -40,9 +40,13 @@ evaluate_post_request() {
     local phase="$4"
     local desc="$5"
 
-    local response_output_file=$(mktemp)
-    local response_output=$(curl -o ${response_output_file} -i -H "content-type: application/json" -d "${payload}" "${url}" 2>&1)
-    local response_code_final=$(cat ${response_output_file} | grep -Po '(?<=^HTTP/1\.1 )([0-9]+)' | tail -n 1)
+    local response_output_file
+    response_output_file=$(mktemp)
+    local response_output
+    local response_code_final
+    # shellcheck disable=SC2034
+    response_output=$(curl -o "${response_output_file}" -i -H "content-type: application/json" -d "${payload}" "${url}" 2>&1)
+    response_code_final=$(grep -Po '(?<=^HTTP/1\.1 )([0-9]+)' < "${response_output_file}" | tail -n 1)
 
     if [ -z "${response_code_final}" ]; then
         response_code_final="NO HTTP RESPONSE DETECTED"
@@ -50,7 +54,7 @@ evaluate_post_request() {
 
     if [ "${response_code_final}" != "${expected_code}" ]; then
         echo >&2 "ERROR: Unexpected Response (${response_code_final}) during ${phase} phase: ${desc}"
-        cat >&2 ${response_output_file}
+        cat >&2 "${response_output_file}"
         exit 1
     else
         # Cleanup temp file
@@ -65,10 +69,11 @@ perform_commissioning() {
     local bootstrap_url="${base_url}/bootstrap"
     local get_url="${base_url}/get-step"
     local url="${base_url}/post-step"
+    local ignition_edition_current
     
     commissioning_steps_raw=$(curl -s -f ${bootstrap_url})
-    local ignition_edition=$(echo "$commissioning_steps_raw" | jq -r '.edition')
-    if [ "${ignition_edition}" == "NOT_SET" ]; then
+    ignition_edition_current=$(echo "$commissioning_steps_raw" | jq -r '.edition')
+    if [ "${ignition_edition_current}" == "NOT_SET" ]; then
         local edition_selection="${IGNITION_EDITION}"
         if [ "${IGNITION_EDITION}" == "full" ]; then edition_selection=""; fi
         local edition_selection_payload='{"id":"edition","step":"edition","data":{"edition":"'${edition_selection}'"}}'
@@ -79,39 +84,43 @@ perform_commissioning() {
     fi
 
     echo -n "init     | Gathering required commissioning steps: "
-    commissioning_steps=(
-        $((echo "$commissioning_steps_raw" | jq -r '.steps | keys | @sh') | tr -d \')
-    )
+    mapfile -t commissioning_steps < <( (echo "$commissioning_steps_raw" | jq -r '.steps | keys | @sh') | tr -d \' )
     echo "${commissioning_steps[*]}"
 
     # activation
-    if [[ $commissioning_steps[@]} =~ "activated" ]]; then
+    if [[ ${commissioning_steps[*]} =~ "activated" ]]; then
         local activation_payload='{"id":"activation","data":{"licenseKey":"'${IGNITION_LICENSE_KEY}'","activationToken":"'${IGNITION_ACTIVATION_TOKEN}'"}}'
         evaluate_post_request "${url}" "${activation_payload}" 201 "${phase}" "Online Activation"
         echo "init     |  IGNITION_LICENSE_KEY: ${IGNITION_LICENSE_KEY}"
     fi
 
     # authSetup
-    if [[ ${commissioning_steps[@]} =~ "authSetup" && "${GATEWAY_PROMPT_PASSWORD}" != "1" ]]; then
+    if [[ ${commissioning_steps[*]} =~ "authSetup" && "${GATEWAY_PROMPT_PASSWORD}" != "1" ]]; then
         local auth_user="${GATEWAY_ADMIN_USERNAME:=admin}"
-        local auth_salt=$(date +%s | sha256sum | head -c 8)
-        local auth_pwhash=$(printf %s "${GATEWAY_ADMIN_PASSWORD}${auth_salt}" | sha256sum - | cut -c -64) 
+        local auth_salt
+        auth_salt=$(date +%s | sha256sum | head -c 8)
+        local auth_pwhash
+        auth_pwhash=$(printf %s "${GATEWAY_ADMIN_PASSWORD}${auth_salt}" | sha256sum - | cut -c -64) 
         local auth_password="[${auth_salt}]${auth_pwhash}"
-        local auth_payload=$(jq -ncM --arg user "$auth_user" --arg pass "$auth_password" '{ id: "authentication", step:"authSetup", data: { username: $user, password: $pass }}')
+        local auth_payload
+        auth_payload=$(jq -ncM --arg user "$auth_user" --arg pass "$auth_password" '{ id: "authentication", step:"authSetup", data: { username: $user, password: $pass }}')
         evaluate_post_request "${url}" "${auth_payload}" 201 "${phase}" "Configuring Authentication"
 
         echo "init     |  GATEWAY_ADMIN_USERNAME: ${GATEWAY_ADMIN_USERNAME}"
-        if [ ! -z "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
+        if [[ -n "$GATEWAY_RANDOM_ADMIN_PASSWORD" ]]; then echo "  GATEWAY_RANDOM_ADMIN_PASSWORD: ${GATEWAY_ADMIN_PASSWORD}"; fi
     fi
 
     # connections
-    if [[ ${commissioning_steps[@]} =~ "connections" ]]; then
+    if [[ ${commissioning_steps[*]} =~ "connections" ]]; then
         # Retrieve default port configuration from get-step payload
         connection_info_raw=$(curl -s -f "${get_url}?step=connections")
         # Register Port Configuration
-        local http_port="$(echo ${connection_info_raw} | jq -r '.data[] | select(.name=="httpPort").port')"
-        local https_port="$(echo ${connection_info_raw} | jq -r '.data[] | select(.name=="httpsPort").port')"
-        local gan_port="$(echo ${connection_info_raw} | jq -r '.data[] | select(.name=="ganPort").port')"
+        local http_port
+        http_port="$(echo "${connection_info_raw}" | jq -r '.data[] | select(.name=="httpPort").port')"
+        local https_port
+        https_port="$(echo "${connection_info_raw}" | jq -r '.data[] | select(.name=="httpsPort").port')"
+        local gan_port
+        gan_port="$(echo "${connection_info_raw}" | jq -r '.data[] | select(.name=="ganPort").port')"
         local use_ssl="${GATEWAY_USESSL:=false}"
         local port_payload='{"id":"connections","step":"connections","data":{"http":'${http_port:=8088}',"https":'${https_port:=8043}',"gan":'${gan_port:=8060}',"useSSL":'${use_ssl}'}}'
         evaluate_post_request "${url}" "${port_payload}" 201 "${phase}" "Configuring Connections"
@@ -122,7 +131,7 @@ perform_commissioning() {
     fi
 
     # eula
-    if [[ ${commissioning_steps[@]} =~ "eula" ]]; then
+    if [[ ${commissioning_steps[*]} =~ "eula" ]]; then
         local license_accept_payload='{"id":"license","step":"eula","data":{"accept":true}}'
         evaluate_post_request "${url}" "${license_accept_payload}" 201 "${phase}" "License Acceptance"
         echo "init     |  EULA_STATUS: accepted"
@@ -137,5 +146,5 @@ perform_commissioning() {
 }
 
 echo "init     | Initiating commissioning helper functions..."
-health_check ${IGNITION_COMMISSIONING_DELAY:=30} "RUNNING|COMMISSIONING"
+health_check "${IGNITION_COMMISSIONING_DELAY:=30}" "RUNNING|COMMISSIONING"
 perform_commissioning

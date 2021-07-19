@@ -6,12 +6,14 @@ QUARANTINE=/var/lib/ignition/data/certificates/gateway_network/quarantine
 
 echo "Beginning automatic gateway network certificate acceptance (${DELAY}s)..."
 
-for ((i=${DELAY};i>0;i--)); do
-    cert_files=( ${QUARANTINE}/*.der )
-    if ((${#cert_files[@]} != 0)); then
-        cert_file=$(basename "${cert_files[@]}")
-        echo "Accepting Certificate: ${cert_file}"
-        mv "${cert_files[@]}" ${QUARANTINE}/..
+for ((i=DELAY;i>0;i--)); do
+    if [[ ! -d "${QUARANTINE}" ]]; then
+        mapfile -t cert_files < <(find "${QUARANTINE}" -name '*.der' -type f)
+        for cert_file in "${cert_files[@]}"; do
+            cert_file_base=$(basename "${cert_file}")
+            echo "init     | Accepting Certificate: ${cert_file_base}"
+            mv "${cert_file}" "${QUARANTINE}/.."
+        done        
     fi
     sleep 1
 done
