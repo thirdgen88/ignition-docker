@@ -22,6 +22,16 @@ declare -l GATEWAY_NETWORK_UUID=${GATEWAY_NETWORK_UUID:-}
 EMPTY_VOLUME_PATH="/data"
 DATA_VOLUME_LOCATION=$( (grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts && echo "${EMPTY_VOLUME_PATH}") || echo "/var/lib/ignition/data" )
 
+# Extraction of Ignition Base Image Version
+IMAGE_VERSION=$(grep gateway.version < "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | cut -d = -f 2 )
+# Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
+if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
+    IMAGE_VERSION="${IMAGE_VERSION//-SNAPSHOT/}"
+fi
+# Strip "-rcN" off as well, if applicable.
+# shellcheck disable=SC2001   # since we really need a regex here
+IMAGE_VERSION=$(echo "${IMAGE_VERSION}" | sed 's/-rc[0-9]$//')
+
 # Additional local initialization (used by background scripts)
 IGNITION_EDITION=$(echo "${IGNITION_EDITION:-standard}" | awk '{print tolower($0)}')
 export IGNITION_EDITION
@@ -281,23 +291,12 @@ check_for_upgrade() {
     local init_file_path="$1"
     local volume_version
     local version_check
-    local image_version
-    image_version=$(grep gateway.version < "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | cut -d = -f 2 )
     local empty_volume_check
     empty_volume_check=$(grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts; echo $?)
 
-    # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
-    if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
-        image_version="${image_version//-SNAPSHOT/}"
-    fi
-
-    # Strip "-rcN" off as well, if applicable.
-    # shellcheck disable=SC2001   # since we really need a regex here
-    image_version=$(echo "${image_version}" | sed 's/-rc[0-9]$//')
-
     if [ ! -f "${DATA_VOLUME_LOCATION}/db/config.idb" ]; then
         # Fresh/new instance, case 1
-        echo "${image_version}" > "${init_file_path}"
+        echo "${IMAGE_VERSION}" > "${init_file_path}"
         upgrade_check_result=-1
 
         # Check if we're using an empty-volume mode
@@ -334,7 +333,7 @@ check_for_upgrade() {
         if [ -f "${init_file_path}" ]; then
             volume_version=$(cat "${init_file_path}")
         fi
-        version_check=$(compare_versions "${image_version}" "${volume_version}")
+        version_check=$(compare_versions "${IMAGE_VERSION}" "${volume_version}")
 
         case ${version_check} in
             0)
@@ -344,7 +343,7 @@ check_for_upgrade() {
                 # Init file present, upgrade required
                 echo "init     | Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
-                echo "${image_version}" > "${init_file_path}"
+                echo "${IMAGE_VERSION}" > "${init_file_path}"
                 # Correlate the result of the version check
                 if [ "${version_check}" -eq 1 ]; then 
                     upgrade_check_result=-2
@@ -357,7 +356,7 @@ check_for_upgrade() {
                 exit "${version_check}"
                 ;;
             -2)
-                echo >&2 "init     | Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
+                echo >&2 "init     | Version mismatch on existing volume (${volume_version}) versus image (${IMAGE_VERSION}), Ignition image version must be greater or equal to volume version."
                 exit "${version_check}"
                 ;;
             -3)
@@ -365,7 +364,7 @@ check_for_upgrade() {
                 exit "${version_check}"
                 ;;
             -4)
-                echo >&2 "init     | Unexpected version syntax found in image (${image_version})"
+                echo >&2 "init     | Unexpected version syntax found in image (${IMAGE_VERSION})"
                 exit "${version_check}"
                 ;;
             *)
@@ -642,10 +641,16 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
 
     # Export environment variables for auto-commissioning unless skip is set
     if [ "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then
-        export ACCEPT_IGNITION_EULA=${ACCEPT_IGNITION_EULA:-Y}
-        export GATEWAY_HTTP_PORT=${GATEWAY_HTTP_PORT:-8088}
-        export GATEWAY_HTTPS_PORT=${GATEWAY_HTTPS_PORT:-8043}
-        export GATEWAY_GAN_PORT=${GATEWAY_GAN_PORT:-8060}
+
+        if [[ $(compare_versions "${IMAGE_VERSION}" "8.1.8") -ge 0 ]]; then
+            # Auto-commissioning logic built into 8.1.8+
+            export ACCEPT_IGNITION_EULA=${ACCEPT_IGNITION_EULA:-Y}
+            export GATEWAY_HTTP_PORT=${GATEWAY_HTTP_PORT:-8088}
+            export GATEWAY_HTTPS_PORT=${GATEWAY_HTTPS_PORT:-8043}
+            export GATEWAY_GAN_PORT=${GATEWAY_GAN_PORT:-8060}
+        else
+            perform-commissioning.sh &
+        fi
     fi
     
     echo 'init     | Starting Ignition Gateway...'
