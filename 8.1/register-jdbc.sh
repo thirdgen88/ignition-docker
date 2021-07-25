@@ -11,7 +11,7 @@ function main() {
     if [ ! -d "/jdbc" ]; then
         return 0  # Silently exit if there is no /jdbc path
     elif [ ! -f "${DB_LOCATION}" ]; then
-        echo "init     | WARNING: $(basename ${DB_LOCATION}) not found, skipping jdbc registration"
+        echo "init     | WARNING: ${DB_FILE} not found, skipping jdbc registration"
         return 0
     fi
 
@@ -24,18 +24,18 @@ function register_jdbc() {
     echo "init     | Searching for third-party JDBC drivers..."
     
     # Get List of JDBC Drivers
-    JDBC_CLASSNAMES=( $( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;") )
-    JDBC_CLASSPATHS=( $(echo ${JDBC_CLASSNAMES[@]} | sed 's/\./\//g') )
+    mapfile -t JDBC_CLASSNAMES < <( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;" )
+    JDBC_CLASSPATHS=( "${JDBC_CLASSNAMES[@]/.//}" )  # replace dots with slashes for the paths
 
     # Remove Invalid Symbolic Links
-    find ${IGNITION_INSTALL_LOCATION}/user-lib/jdbc -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find "${IGNITION_INSTALL_LOCATION}/user-lib/jdbc" -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new jdbc drivers and tie into db
     for jdbc in /jdbc/*.jar; do
-        local jdbc_basename=$(basename "${jdbc}")
-        local jdbc_sourcepath=${jdbc}
-        local jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
-        local jdbc_targetclasspath=""
+        local jdbc_basename jdbc_sourcepath jdbc_destpath
+        jdbc_basename=$(basename "${jdbc}")
+        jdbc_sourcepath=${jdbc}
+        jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
         
         if [ -h "${jdbc_destpath}" ]; then
             echo "init     | Skipping Linked JDBC Driver: ${jdbc_basename}"
@@ -44,20 +44,20 @@ function register_jdbc() {
 
         # Determine if jdbc driver is a candidate for linking based on searching
         # the list of existing JDBC Classname entries gathered above.
-        local jdbc_listing=$(unzip -l ${jdbc})
+        local jdbc_listing
+        jdbc_listing=$(unzip -l "${jdbc}")
         for ((i=0; i<${#JDBC_CLASSPATHS[*]}; i++)); do
             classpath=${JDBC_CLASSPATHS[i]}
             classname=${JDBC_CLASSNAMES[i]}
             case ${jdbc_listing} in
                 *$classpath*)
-                jdbc_targetclasspath=$classpath
                 jdbc_targetclassname=$classname
                 break;;
             esac
         done
 
         # If we didn't find a match, ...
-        if [ -z ${jdbc_targetclassname} ]; then
+        if [ -z "${jdbc_targetclassname}" ]; then
             continue  # ... skip to next JDBC driver in path
         fi
 

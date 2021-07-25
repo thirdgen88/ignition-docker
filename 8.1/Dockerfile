@@ -1,5 +1,7 @@
 # Ignition Version
 ARG IGNITION_VERSION="8.1.7"
+# IGNITION_RC_VERSION should be something like `8.1.8-rc1` when applicable
+ARG IGNITION_RC_VERSION="8.1.8-rc1"
 
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
@@ -15,18 +17,24 @@ RUN apt-get update && apt-get install -y wget unzip
 # Ignition Downloader Parameters
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.7/20210603-1403/Ignition-linux-64-8.1.7.zip"
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="6e6fcd731fc1a1acb564bde3f64822e9dd566a65c31e403db1934c8092554e26"
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.8-SNAPSHOT/Ignition-linux-64-8.1.8-SNAPSHOT.zip"
+ARG IGNITION_RC_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.8-rc1/20210720-1004/Ignition-linux-64-8.1.8-rc1.zip"
+ARG IGNITION_RC_AMD64_DOWNLOAD_SHA256="607af97d6de7dbf0a443bfce3bb1256e3fe0a47b2f89b8d9c3e50f3b64ea9bd7"
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.9-SNAPSHOT/Ignition-linux-64-8.1.9-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
 ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.7/20210603-1403/Ignition-linux-armhf-8.1.7.zip"
 ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="1bdf6e9b6bbde65dac955400a2acdabcfe9711f2bde41cbfb1d78ffcbcb8442d"
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.8-SNAPSHOT/Ignition-linux-armhf-8.1.8-SNAPSHOT.zip"
+ARG IGNITION_RC_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.8-rc1/20210720-1004/Ignition-linux-armhf-8.1.8-rc1.zip"
+ARG IGNITION_RC_ARMHF_DOWNLOAD_SHA256="b0a4cf3201868d1d6293294db95205f9e1ba1cae2423e3af6f9cbb02acc72095"
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.9-SNAPSHOT/Ignition-linux-armhf-8.1.9-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.7/20210603-1403/Ignition-linux-aarch64-8.1.7.zip"
 ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="c280c82715673833a0f2a1b56cbde982fc9bd48dd6f07069869255f25dbb00eb"
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.8-SNAPSHOT/Ignition-linux-aarch64-8.1.8-SNAPSHOT.zip"
+ARG IGNITION_RC_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.8-rc1/20210720-1004/Ignition-linux-aarch64-8.1.8-rc1.zip"
+ARG IGNITION_RC_ARM64_DOWNLOAD_SHA256="0b16bb6d148a166dac6325abdd8ffe28272f6790e97e2d2270181e7a9a55fb5a"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.9-SNAPSHOT/Ignition-linux-aarch64-8.1.9-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
@@ -131,10 +139,10 @@ RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
-    CMD curl --max-time 3 -f http://localhost:8088/StatusPing 2>&1 | grep RUNNING
+    CMD curl --max-time 3 -f http://localhost:${GATEWAY_HTTP_PORT:-8088}/StatusPing 2>&1 | grep RUNNING
 
 # Setup Port Expose
-EXPOSE 8088 8060 8043 8000
+EXPOSE 8088
 
 # Launch Ignition
 USER ${IGNITION_UID}

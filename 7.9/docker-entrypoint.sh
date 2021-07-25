@@ -17,7 +17,7 @@ GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
 add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
-    if [ ! -z ${!2:-} ]; then
+    if [ -n "${!2:-}" ]; then
         echo "Added Init Setting ${1}=${!2}"
         echo "${1}=${!2}" >> $INIT_FILE
     fi
@@ -37,22 +37,22 @@ add_gw_to_init () {
                )
 
     # Loop through the settings above and add_to_init
-    for key in ${!settings[@]}; do
+    for key in "${!settings[@]}"; do
         value=${settings[$key]}
-        if [ ! -z ${!value:-} ]; then
-            add_to_init gateway.network.${1}.${key} ${value}
+        if [ -n "${!value:-}" ]; then
+            add_to_init "gateway.network.${1}.${key}" "${value}"
         fi
     done
 
     # Handle EnableSSL explicitly, default to true if not specified
     enablessl=GATEWAY_NETWORK_${1}_ENABLESSL
     declare "$enablessl=${!enablessl:-true}"
-    add_to_init gateway.network.${1}.EnableSSL ${enablessl}
+    add_to_init "gateway.network.${1}.EnableSSL" "${enablessl}"
 
     # If EnableSSL defaulted to true and Port was not specified, default to 8060
     port=GATEWAY_NETWORK_${1}_PORT
     declare "$port=${!port:-8060}"
-    add_to_init gateway.network.${1}.Port ${port}
+    add_to_init "gateway.network.${1}.Port" "${port}"
 }
 
 # usage: file_env VAR [DEFAULT]
@@ -84,7 +84,7 @@ health_check() {
     local delay=$2
 
     # Wait for a short period for the commissioning servlet to come alive
-    for ((i=${delay};i>0;i--)); do
+    for ((i=delay;i>0;i--)); do
         if curl --max-time 3 -f http://localhost:8088/main/StatusPing 2>&1 | grep -c RUNNING > /dev/null; then   
             break
         fi
@@ -122,18 +122,18 @@ register_jdbc() {
     local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
     # Get List of JDBC Drivers
-    JDBC_CLASSNAMES=( $( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;") )
-    JDBC_CLASSPATHS=( $(echo ${JDBC_CLASSNAMES[@]} | sed 's/\./\//g') )
+    mapfile -t JDBC_CLASSNAMES < <( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;" )
+    JDBC_CLASSPATHS=( "${JDBC_CLASSNAMES[@]/.//}" )  # replace dots with slashes for the paths
 
     # Remove Invalid Symbolic Links
-    find ${IGNITION_INSTALL_LOCATION}/user-lib/jdbc -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find "${IGNITION_INSTALL_LOCATION}/user-lib/jdbc" -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new jdbc drivers and tie into db
     for jdbc in /jdbc/*.jar; do
-        local jdbc_basename=$(basename "${jdbc}")
-        local jdbc_sourcepath=${jdbc}
-        local jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
-        local jdbc_targetclasspath=""
+        local jdbc_basename jdbc_sourcepath jdbc_destpath jdbc_listing
+        jdbc_basename=$(basename "${jdbc}")
+        jdbc_sourcepath=${jdbc}
+        jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
         
         if [ -h "${jdbc_destpath}" ]; then
             echo "Skipping Linked JDBC Driver: ${jdbc_basename}"
@@ -142,20 +142,19 @@ register_jdbc() {
 
         # Determine if jdbc driver is a candidate for linking based on searching
         # the list of existing JDBC Classname entries gathered above.
-        local jdbc_listing=$(unzip -l ${jdbc})
+        jdbc_listing=$(unzip -l "${jdbc}")
         for ((i=0; i<${#JDBC_CLASSPATHS[*]}; i++)); do
             classpath=${JDBC_CLASSPATHS[i]}
             classname=${JDBC_CLASSNAMES[i]}
             case ${jdbc_listing} in
                 *$classpath*)
-                jdbc_targetclasspath=$classpath
                 jdbc_targetclassname=$classname
                 break;;
             esac
         done
 
         # If we didn't find a match, ...
-        if [ -z ${jdbc_targetclassname} ]; then
+        if [ -z "${jdbc_targetclassname}" ]; then
             continue  # ... skip to next JDBC driver in path
         fi
 
@@ -232,14 +231,14 @@ enable_disable_modules() {
 		module_definition="${module_definition_mappings[${module_filename}]}"
 
 		if [ -z "${module_definition}" ]; then
-			printf "\n  Unknown module ${module_filename}, skipping..."
+			printf "\n  Unknown module %s, skipping..." "${module_filename}"
 			continue
 		fi
 		
 		# Search for Module Definition in List of Modules Enabled
 		module_found=0
 		for (( n=0; n<${#modules_enabled[@]}; n++ )); do
-			if [ ${module_definition} = ${modules_enabled[$n]} ]; then
+			if [ ${module_definition} = "${modules_enabled[$n]}" ]; then
 				module_found+=1
 				break
 			fi
@@ -247,7 +246,7 @@ enable_disable_modules() {
 		
 		# If we didn't find it, move to disabled path
 		if [ ${module_found} -eq 0 ]; then
-			printf "\n  Disabling '${module_filename}'"
+			printf "\n  Disabling '%s'" "${module_filename}"
 			mv "${module_filepath}" "${modules_disabled_path}/"
 		fi
 	done
@@ -268,14 +267,15 @@ register_modules() {
     local SQLITE3=( sqlite3 "${DB_LOCATION}" )
 
     # Remove Invalid Symbolic Links
-    find ${IGNITION_INSTALL_LOCATION}/user-lib/modules -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
+    find "${IGNITION_INSTALL_LOCATION}/user-lib/modules" -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
 
     # Establish Symbolic Links for new modules and tie into db
     for module in /modules/*.modl; do
-        local module_basename=$(basename "${module}")
-        local module_sourcepath=${module}
-        local module_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/modules/${module_basename}"
-        local keytool=$(which keytool)
+        local module_basename module_sourcepath module_destpath keytool
+        module_basename=$(basename "${module}")
+        module_sourcepath=${module}
+        module_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/modules/${module_basename}"
+        keytool=$(which keytool)
 
         if [ -h "${module_destpath}" ]; then
             echo "Skipping Linked Module: ${module_basename}"
@@ -295,13 +295,14 @@ register_modules() {
         ln -s "${module_sourcepath}" "${module_destpath}"
 
         # Populate CERTIFICATES table
-        local cert_info=$( unzip -qq -c "${module_sourcepath}" certificates.p7b | $keytool -printcert -v | head -n 9 )
-        local thumbprint=$( echo "${cert_info}" | grep -A 2 "Certificate fingerprints" | grep SHA1 | cut -d : -f 2- | sed -e 's/\://g' | awk '{$1=$1;print tolower($0)}' )
-        local subject_name=$( echo "${cert_info}" | grep -A 1 "Certificate\[1\]:" | grep -Po '^Owner: CN=\K(.+)(?=, OU)' | sed -e 's/"//g' )
+        local cert_info thumbprint subject_name next_certificates_id thumbprint_already_exists
+        cert_info=$( unzip -qq -c "${module_sourcepath}" certificates.p7b | $keytool -printcert -v | head -n 9 )
+        thumbprint=$( echo "${cert_info}" | grep -A 2 "Certificate fingerprints" | grep SHA1 | cut -d : -f 2- | sed -e 's/\://g' | awk '{$1=$1;print tolower($0)}' )
+        subject_name=$( echo "${cert_info}" | grep -A 1 "Certificate\[1\]:" | grep -Po '^Owner: CN=\K(.+)(?=, OU)' | sed -e 's/"//g' )
         echo "  Thumbprint: ${thumbprint}"
         echo "  Subject Name: ${subject_name}"
-        local next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" )
-        local thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
+        next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" )
+        thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
         if [ "${thumbprint_already_exists}" != "1" ]; then
             echo "  Accepting Certificate as CERTIFICATES_ID=${next_certificates_id}"
             "${SQLITE3[@]}" "INSERT INTO CERTIFICATES (CERTIFICATES_ID, THUMBPRINT, SUBJECTNAME) VALUES (${next_certificates_id}, x'${thumbprint}', '${subject_name}'); UPDATE SEQUENCES SET val=${next_certificates_id} WHERE name='CERTIFICATES_SEQ'"
@@ -310,10 +311,11 @@ register_modules() {
         fi
 
         # Populate EULAS table
-        local next_eulas_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(EULAS_ID)+1,1) FROM EULAS" )
-        local license_crc32=$( unzip -qq -c "${module_sourcepath}" license.html | gzip -c | tail -c8 | od -t u4 -N 4 -A n | cut -c 2- )
-        local module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' )
-        local module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
+        local next_eulas_id license_crc32 module_id module_id_already_exists
+        next_eulas_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(EULAS_ID)+1,1) FROM EULAS" )
+        license_crc32=$( unzip -qq -c "${module_sourcepath}" license.html | gzip -c | tail -c8 | od -t u4 -N 4 -A n | cut -c 2- )
+        module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' )
+        module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
         if [ "${module_id_already_exists}" != "1" ]; then
             echo "  Accepting License on your behalf as EULAS_ID=${next_eulas_id}"
             "${SQLITE3[@]}" "INSERT INTO EULAS (EULAS_ID, MODULEID, CRC) VALUES (${next_eulas_id}, '${module_id}', ${license_crc32}); UPDATE SEQUENCES SET val=${next_eulas_id} WHERE name='EULAS_SEQ'"
@@ -339,9 +341,9 @@ compare_versions() {
 
     # Extract Version Numbers
     [[ $image_version =~ $version_regex_pattern ]]
-    local image_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    local image_version_arr=( "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" )
     [[ $volume_version =~ $version_regex_pattern ]]
-    local volume_version_arr=( ${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]} )
+    local volume_version_arr=( "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" )
     
     if [ ${#image_version_arr[@]} -ne 3 ]; then
         echo >&2 "Unexpected version syntax found in image (${image_version})"
@@ -358,10 +360,10 @@ compare_versions() {
         return_value=2  
         
         for (( i = 0; i < 3; i++ )); do
-            if [ ${volume_version_arr[$i]} -lt ${image_version_arr[$i]} ]; then
+            if [[ ${volume_version_arr[$i]} < ${image_version_arr[$i]} ]]; then
                 return_value=1  # Major Version Upgrade Detected, commissioning will be required
                 break
-            elif [ ${volume_version_arr[$i]} -gt ${image_version_arr[$i]} ]; then
+            elif [[ ${volume_version_arr[$i]} > ${image_version_arr[$i]} ]]; then
                 echo >&2 "Version mismatch on existing volume (${volume_version}) versus image (${image_version}), Ignition image version must be greater or equal to volume version."
                 return_value=-2  # ... and flag lower case (invalid) if detected
                 break
@@ -369,7 +371,7 @@ compare_versions() {
         done        
     fi
 
-    if [ ${return_value} -eq -1 ]; then
+    if [[ ${return_value} == -1 ]]; then
         echo >&2 "Unknown error encountered during version comparison, aborting..."
     fi
     echo ${return_value}
@@ -382,13 +384,14 @@ compare_versions() {
 #                 0 = No upgrade needed
 #                 1 = Upgrade Performed, Minor Upgrade Detected
 check_for_upgrade() {
-    local version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
-    local init_file_path="$1"
-    local image_version=$(cat "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | grep gateway.version | cut -d = -f 2 )
+    local version_regex_pattern init_file_path image_version volume_version version_check
+    version_regex_pattern='([0-9]*)\.([0-9]*)\.([0-9]*)'
+    init_file_path="$1"
+    image_version=$(grep gateway.version < "${IGNITION_INSTALL_LOCATION}/lib/install-info.txt" | cut -d = -f 2 )
 
     # Strip "-SNAPSHOT" off...  FOR NIGHTLY BUILDS ONLY
     if [[ ${BUILD_EDITION} == *"NIGHTLY"* ]]; then
-        image_version=$(echo ${image_version} | sed "s/-SNAPSHOT$//")
+        image_version="${image_version//-SNAPSHOT/}"
     fi
 
     if [ ! -d "${IGNITION_INSTALL_LOCATION}/data/temp" ]; then
@@ -402,9 +405,9 @@ check_for_upgrade() {
         upgrade_check_result=-1
     else
         if [ -f "${init_file_path}" ]; then
-            local volume_version=$(cat ${init_file_path})
+            volume_version=$(cat "${init_file_path}")
         fi
-        local version_check=$(compare_versions "${image_version}" "${volume_version}")
+        version_check=$(compare_versions "${image_version}" "${volume_version}")
 
         case ${version_check} in
             0)
@@ -416,14 +419,14 @@ check_for_upgrade() {
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
-                if [ ${version_check} -eq 1 ]; then 
+                if [[ ${version_check} == 1 ]]; then 
                     upgrade_check_result=-2
                 else
                     upgrade_check_result=1
                 fi
                 ;;
             *)
-                exit ${version_check}
+                exit "${version_check}"
                 ;;
         esac
     fi
@@ -432,30 +435,30 @@ check_for_upgrade() {
 # Collect additional arguments if we're running the gateway
 if [ "$1" = './ignition-gateway' ]; then
     # Examine memory constraints and apply to Java arguments
-    if [ ! -z ${GATEWAY_INIT_MEMORY:-} ]; then
-        if [ ${GATEWAY_INIT_MEMORY} -ge 256 2> /dev/null ]; then
+    if [ -n "${GATEWAY_INIT_MEMORY:-}" ]; then
+        if [[ ${GATEWAY_INIT_MEMORY} =~ ^[0-9]+$ && ${GATEWAY_INIT_MEMORY} -ge 256 ]]; then
             WRAPPER_OPTIONS+=(
                 "wrapper.java.initmemory=${GATEWAY_INIT_MEMORY}"
                 )
         else
-            echo >&2 "Invalid minimum memory specification, must be integer in MB: ${GATEWAY_INIT_MEMORY}"
+            echo >&2 "Invalid minimum memory specification, must be integer in MB >= 256: ${GATEWAY_INIT_MEMORY}"
             exit 1
         fi    
     fi
 
-    if [ ! -z ${GATEWAY_MAX_MEMORY:-} ]; then
-        if [ ${GATEWAY_MAX_MEMORY} -ge 512 2> /dev/null ]; then
+    if [ -n "${GATEWAY_MAX_MEMORY:-}" ]; then
+        if [[ ${GATEWAY_MAX_MEMORY} =~ ^[0-9]+$ && ${GATEWAY_MAX_MEMORY} -ge 512 ]]; then
             WRAPPER_OPTIONS+=(
                 "wrapper.java.maxmemory=${GATEWAY_MAX_MEMORY}"
             )
         else
-            echo >&2 "Invalid max memory specification, must be integer in MB: ${GATEWAY_MAX_MEMORY}"
+            echo >&2 "Invalid max memory specification, must be integer in MB >= 512: ${GATEWAY_MAX_MEMORY}"
             exit 1
         fi
     fi
 
-    if [ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]; then
-        echo >&2 "Invalid memory specification, min (${GATEWAY_MIN_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
+    if [[ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]]; then
+        echo >&2 "Invalid memory specification, min (${GATEWAY_INIT_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
         exit 1
     fi
 
@@ -471,7 +474,7 @@ if [ "$1" = './ignition-gateway' ]; then
         [WRAPPER_SYSLOG_REMOTE_PORT]=wrapper.syslog.remote.port
     )
     for opt in "${!WRAPPER_CUSTOM_OPTIONS[@]}"; do
-        if [ ! -z ${!opt} ]; then
+        if [ -n "${!opt}" ]; then
             WRAPPER_OPTIONS+=(
                 "${WRAPPER_CUSTOM_OPTIONS[$opt]}=${!opt}"
             )
@@ -479,7 +482,7 @@ if [ "$1" = './ignition-gateway' ]; then
     done
 
     # Combine CMD array with wrapper and explicit java options
-    if [ ! -z ${JAVA_OPTIONS:-} ]; then
+    if [ -n "${JAVA_OPTIONS:-}" ]; then
         JAVA_OPTIONS=( "--" "${JAVA_OPTIONS[@]}" )
     fi
     CMD+=(
@@ -508,7 +511,7 @@ if [ "$1" = './ignition-gateway' ]; then
 
             # Look for declared HOST variables and add the other associated ones via add_gw_to_init
             looper=GATEWAY_NETWORK_${i:=0}_HOST
-            while [ ! -z ${!looper:-} ]; do
+            while [ -n "${!looper:-}" ]; do
                 # Add all available env parameters for this host to the init file
                 add_gw_to_init $i
                 # Index to the next HOST variable
@@ -517,7 +520,7 @@ if [ "$1" = './ignition-gateway' ]; then
 
             # Enable Gateway Network Certificate Auto Accept if Declared
             if [ "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" -gt 0 ] 2>/dev/null; then
-                accept-gwnetwork.sh ${GATEWAY_NETWORK_AUTOACCEPT_DELAY} &
+                accept-gwnetwork.sh "${GATEWAY_NETWORK_AUTOACCEPT_DELAY}" &
             fi
         fi
 
@@ -529,15 +532,17 @@ if [ "$1" = './ignition-gateway' ]; then
         fi
 
         # Perform Module Registration and Restore of Gateway Backup
-        if [[ (-d "/modules" && $(ls -1 /modules | wc -l) > 0) || 
-              (-d "/jdbc" && $(ls -1 /jdbc | wc -l) > 0) || 
+        modules_files=(/modules/*)
+        jdbc_files=(/jdbc/*)
+        if [[ (-d "/modules" && ${#modules_files[@]} -gt 0) || 
+              (-d "/jdbc" && ${#jdbc_files[@]} -gt 0) || 
               "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
             # Initialize Startup Gateway before Attempting Restore
             echo "Ignition initialization process in progress, logged here: /var/log/ignition/provisioning.log"
             "${CMD[@]}" > /var/log/ignition/provisioning.log 2>&1 &
             pid="$!"
 
-            health_check "Startup" ${IGNITION_STARTUP_DELAY:=60}
+            health_check "Startup" "${IGNITION_STARTUP_DELAY:=60}"
 
             # Gateway Restore
             if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
@@ -550,13 +555,13 @@ if [ "$1" = './ignition-gateway' ]; then
     fi
 
     # Link Additional Modules and prepare Ignition database
-    register_modules ${GATEWAY_MODULE_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+    register_modules "${GATEWAY_MODULE_RELINK}" "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
 
     # Link Additional JDBC Drivers and prepare Ignition database
-    register_jdbc ${GATEWAY_JDBC_RELINK} "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+    register_jdbc "${GATEWAY_JDBC_RELINK}" "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     
     # Perform module enablement/disablement
-    enable_disable_modules ${GATEWAY_MODULES_ENABLED}
+    enable_disable_modules "${GATEWAY_MODULES_ENABLED}"
 
     echo 'Starting Ignition Gateway...'
 fi

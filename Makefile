@@ -20,6 +20,8 @@ include .env
 	cd 8.0; make multibuild;
 .multibuild-8.1:
 	cd 8.1; make multibuild;
+.multibuild-rc:
+	cd 8.1; make multibuild-rc
 .multibuild-nightly:
 	cd 8.1; make multibuild-nightly;
 
@@ -29,4 +31,5 @@ all:
 build: .build
 build-nightly: .build-nightly
 multibuild: .multibuild
+multibuild-rc: .multibuild-rc
 multibuild-nightly: .multibuild-nightly
