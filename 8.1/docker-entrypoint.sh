@@ -23,7 +23,7 @@ EMPTY_VOLUME_PATH="/data"
 DATA_VOLUME_LOCATION=$( (grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts && echo "${EMPTY_VOLUME_PATH}") || echo "/var/lib/ignition/data" )
 
 # Additional local initialization (used by background scripts)
-IGNITION_EDITION=$(echo "${IGNITION_EDITION:-FULL}" | awk '{print tolower($0)}')
+IGNITION_EDITION=$(echo "${IGNITION_EDITION:-standard}" | awk '{print tolower($0)}')
 export IGNITION_EDITION
 
 # Init Properties Helper Functions
@@ -291,6 +291,10 @@ check_for_upgrade() {
         image_version="${image_version//-SNAPSHOT/}"
     fi
 
+    # Strip "-rcN" off as well, if applicable.
+    # shellcheck disable=SC2001   # since we really need a regex here
+    image_version=$(echo "${image_version}" | sed 's/-rc[0-9]$//')
+
     if [ ! -f "${DATA_VOLUME_LOCATION}/db/config.idb" ]; then
         # Fresh/new instance, case 1
         echo "${image_version}" > "${init_file_path}"
@@ -425,10 +429,10 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         fi
     else
         case ${IGNITION_EDITION} in
-          maker | full | edge)
+          maker | standard | full | edge)
             ;;
           *)
-            echo >&2 "init     | Invalid edition (${IGNITION_EDITION}) specified, must be 'maker', 'edge', or 'full'"
+            echo >&2 "init     | Invalid edition (${IGNITION_EDITION}) specified, must be 'maker', 'edge', or 'standard'"
             exit 1
             ;;
         esac
@@ -609,6 +613,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     # Gateway Restore
     if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
         # Set restore path based on disabled startup condition
+        # TODO: fire gwcmd instead of this custom logic, still need to discover the resultant file though for the module registration
         if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
             restore_file_path="${IGNITION_INSTALL_LOCATION}/data/__restore_disabled_$(( $(date '+%s%N') / 1000000)).gwbk"
         else
@@ -635,14 +640,15 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     # Perform module enablement/disablement
     enable_disable_modules "${GATEWAY_MODULES_ENABLED}"
 
-    # Initiate Commissioning Helper in Background
+    # Export environment variables for auto-commissioning unless skip is set
     if [ "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then
-        perform-commissioning.sh &
+        export ACCEPT_IGNITION_EULA=${ACCEPT_IGNITION_EULA:-Y}
+        export GATEWAY_HTTP_PORT=${GATEWAY_HTTP_PORT:-8088}
+        export GATEWAY_HTTPS_PORT=${GATEWAY_HTTPS_PORT:-8043}
+        export GATEWAY_GAN_PORT=${GATEWAY_GAN_PORT:-8060}
     fi
     
     echo 'init     | Starting Ignition Gateway...'
 fi
-
-unset GATEWAY_ADMIN_PASSWORD GATEWAY_ADMIN_PASSWORD_FILE
 
 "${CMD[@]}"

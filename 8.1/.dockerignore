@@ -2,3 +2,4 @@ jdbc
 modules
 restore
 .vagrant
+compose

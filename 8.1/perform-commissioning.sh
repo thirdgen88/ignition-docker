@@ -1,6 +1,6 @@
 #!/bin/bash
 
-port="8088"
+port="${GATEWAY_HTTP_PORT:-8088}"
 
 # usage: health_check DELAY_SECS TARGET|DETAILS
 #   ie: health_check 60
@@ -15,7 +15,6 @@ health_check() {
     fi
 
     # Wait for a short period for the commissioning servlet to come alive
-    # TODO(kcollins): fix static port assignment of 8088
     for ((i=delay;i>0;i--)); do
         raw_json=$(curl -s --max-time 3 -f http://localhost:${port}/StatusPing || true)
         state_value=$(echo "${raw_json}" | jq -r '.["state"]')
