@@ -20,7 +20,7 @@ GATEWAY_MODULES_ENABLED=${GATEWAY_MODULES_ENABLED:-all}
 GATEWAY_QUICKSTART_ENABLED=${GATEWAY_QUICKSTART_ENABLED:-true}
 declare -l GATEWAY_NETWORK_UUID=${GATEWAY_NETWORK_UUID:-}
 EMPTY_VOLUME_PATH="/data"
-DATA_VOLUME_LOCATION=$(if [ -d "${EMPTY_VOLUME_PATH}" ]; then echo "${EMPTY_VOLUME_PATH}"; else echo "/var/lib/ignition/data"; fi)
+DATA_VOLUME_LOCATION=$( (grep -q -E " ${EMPTY_VOLUME_PATH} " /proc/mounts && echo "${EMPTY_VOLUME_PATH}") || echo "/var/lib/ignition/data" )
 
 # Additional local initialization (used by background scripts)
 IGNITION_EDITION=$(echo "${IGNITION_EDITION:-FULL}" | awk '{print tolower($0)}')
@@ -300,7 +300,7 @@ check_for_upgrade() {
         if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | New Volume detected at /data, copying existing image files prior to Gateway Launch..."
             # Move in-image data volume contents to /data to seed the volume
-            cp -dpRu "${IGNITION_INSTALL_LOCATION}/data/*" "${DATA_VOLUME_LOCATION}/"
+            cp -Ru --preserve=links "${IGNITION_INSTALL_LOCATION}/data/"* "${DATA_VOLUME_LOCATION}/"
             # Replace symbolic links in base install location
             rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
