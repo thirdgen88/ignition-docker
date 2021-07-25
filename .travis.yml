@@ -20,7 +20,7 @@ jobs:
       env: BUILD_TARGET=.multibuild-8.1 DOCKER_MULTI_ARCH=linux/arm,linux/amd64,linux/arm64
     - name: Ignition 8.1 Release Candidate Docker Image
       if: branch = master
-      env: BUILD_TARGET=.multibuild-8.1 DOCKER_MULTI_ARCH=linux/arm,linux/amd64,linux/arm64
+      env: BUILD_TARGET=multibuild-rc DOCKER_MULTI_ARCH=linux/arm,linux/amd64,linux/arm64
 
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
