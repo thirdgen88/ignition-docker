@@ -1,10 +1,10 @@
 export SHELL=bash
 # The expression below ensures that an IGNITION_VERSION is defined in the Dockerfile
-export IGNITION_VERSION=$$(set -eo pipefail; grep IGNITION_VERSION= Dockerfile | cut -d'=' -f 2- | sed 's/"//g')
+export IGNITION_VERSION=$$(grep -Po '(?<=IGNITION_VERSION=\")((\d\.){2}\d)(?=\")' Dockerfile)
 # This version check leverages the above and aborts the build if not found
 export IGNITION_VERSION_CHECK=if [ -z "${IGNITION_VERSION}" ]; then exit 1; fi
 # Extract the IGNITION_RC_VERSION for release candidate, if applicable
-IGNITION_RC_VERSION := $$(set -eo pipefail; grep IGNITION_RC_VERSION= Dockerfile | cut -d'=' -f 2- | sed 's/"//g')
+IGNITION_RC_VERSION:=$$(grep -Po '(?<=IGNITION_RC_VERSION=\")((\d\.){2}\d-rc\d)(?=\")' Dockerfile)
 # Pull in base options (if called from this directory)
 include ../.env
 

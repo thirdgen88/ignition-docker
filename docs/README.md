@@ -1,6 +1,6 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.1.7`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
+* [`8.1.8`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
 * [`7.9.18`, `7.9`, `7.9.18-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
 ## Quick Reference
@@ -114,7 +114,7 @@ Variable | Description |
 `GATEWAY_MODULE_RELINK` | Set to `true` to allow replacement of built-in modules
 `GATEWAY_JDBC_RELINK` | Set to `true` to allow replacement of built-in JDBC drivers
 `GATEWAY_RESTORE_DISABLED` | Set to `1` to perform gateway restore in disabled mode.
-`GATEWAY_SKIP_COMMISSIONING` | Set to `1` to skip automated gateway commissioning _only for > 8.1.0_
+`GATEWAY_SKIP_COMMISSIONING` | Set to `1` to force user to go through manual gateway commissioning _only for > 8.1.0_
 `GATEWAY_DEBUG_ENABLED` | Set to `1` to add JVM args for remote gateway debugging _only for > 8.1.3_
 `IGNITION_STARTUP_DELAY` | Defaults to `60`, increase to allow for more time for initial gateway startup
 `IGNITION_COMMISSIONING_DELAY` | Defaults to `30`, increase to allow for more time for initial commisioning servlet to become available
