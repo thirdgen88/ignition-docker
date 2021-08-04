@@ -25,7 +25,7 @@ function register_jdbc() {
     
     # Get List of JDBC Drivers
     mapfile -t JDBC_CLASSNAMES < <( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;" )
-    JDBC_CLASSPATHS=( "${JDBC_CLASSNAMES[@]/.//}" )  # replace dots with slashes for the paths
+    JDBC_CLASSPATHS=( "${JDBC_CLASSNAMES[@]//.//}" )  # replace dots with slashes for the paths
 
     # Remove Invalid Symbolic Links
     find "${IGNITION_INSTALL_LOCATION}/user-lib/jdbc" -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
