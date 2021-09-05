@@ -1,5 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 shopt -s nullglob
+shopt -s inherit_errexit
 
 # usage register-modules.sh RELINK_ENABLED DB_LOCATION
 #   ie: register-modules.sh true /var/lib/ignition/data/db/config.idb

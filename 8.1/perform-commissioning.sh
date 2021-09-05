@@ -16,7 +16,7 @@ health_check() {
 
     # Wait for a short period for the commissioning servlet to come alive
     for ((i=delay;i>0;i--)); do
-        raw_json=$(curl -s --max-time 3 -f http://localhost:${port}/StatusPing || true)
+        raw_json=$(curl -s --max-time 3 -f "http://localhost:${port}/StatusPing" || true)
         state_value=$(echo "${raw_json}" | jq -r '.["state"]')
         details_value=$(echo "${raw_json}" | jq -r '.["details"]')
         if [ "${state_value}" == "${target}" ] && [ "${details_value}" == "${details}" ]; then
@@ -70,7 +70,7 @@ perform_commissioning() {
     local url="${base_url}/post-step"
     local ignition_edition_current
     
-    commissioning_steps_raw=$(curl -s -f ${bootstrap_url})
+    commissioning_steps_raw=$(curl -s -f "${bootstrap_url}")
     ignition_edition_current=$(echo "$commissioning_steps_raw" | jq -r '.edition')
     if [ "${ignition_edition_current}" == "NOT_SET" ]; then
         local edition_selection="${IGNITION_EDITION}"
@@ -79,7 +79,7 @@ perform_commissioning() {
         evaluate_post_request "${url}" "${edition_selection_payload}" 201 "${phase}" "Edition Selection"
         echo "init     |  IGNITION_EDITION: ${IGNITION_EDITION}"
         # Reload commissioning steps
-        commissioning_steps_raw=$(curl -s -f ${bootstrap_url})
+        commissioning_steps_raw=$(curl -s -f "${bootstrap_url}")
     fi
 
     echo -n "init     | Gathering required commissioning steps: "
