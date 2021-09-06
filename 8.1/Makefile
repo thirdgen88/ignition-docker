@@ -4,7 +4,7 @@ export IGNITION_VERSION=$$(grep -Po '(?<=IGNITION_VERSION=\")((\d\.){2}\d)(?=\")
 # This version check leverages the above and aborts the build if not found
 export IGNITION_VERSION_CHECK=if [ -z "${IGNITION_VERSION}" ]; then exit 1; fi
 # Extract the IGNITION_RC_VERSION for release candidate, if applicable
-IGNITION_RC_VERSION:=$$(grep -Po '(?<=IGNITION_RC_VERSION=\")((\d\.){2}\d-rc\d)(?=\")' Dockerfile)
+IGNITION_RC_VERSION:=$$(grep -Po '(?<=IGNITION_RC_VERSION=\")((\d\.){2}\d+-rc\d)(?=\")' Dockerfile)
 # Pull in base options (if called from this directory)
 include ../.env
 
