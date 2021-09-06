@@ -72,7 +72,8 @@ function register_modules() {
         # Populate EULAS table
         local next_eulas_id license_crc32 module_id module_id_already_exists
         next_eulas_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(EULAS_ID)+1,1) FROM EULAS" ) 
-        license_crc32=$( unzip -qq -c "${module_sourcepath}" license.html | gzip -c | tail -c8 | od -t u4 -N 4 -A n | cut -c 2- ) 
+        license_filename=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<license>).*(?=</license)' )
+        license_crc32=$( unzip -qq -c "${module_sourcepath}" "${license_filename}" | gzip -c | tail -c8 | od -t u4 -N 4 -A n | cut -c 2- ) 
         module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' ) 
         module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
         if [ "${module_id_already_exists}" != "1" ]; then
