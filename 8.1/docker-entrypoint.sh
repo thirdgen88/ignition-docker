@@ -501,7 +501,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
 
     # Collect JVM Arguments
     if [[ ${#JVM_OPTIONS[@]} -gt 0 ]]; then
-        jvm_args_filepath=$(mktemp /tmp/ignition_jvm_args-XXXXXXX)
+        jvm_args_filepath=$(mktemp --tmpdir="${IGNITION_INSTALL_LOCATION}/temp" ignition_jvm_args-XXXXXXX)
         printf "#encoding=UTF-8\n" >> "${jvm_args_filepath}"
         for opt in "${JVM_OPTIONS[@]}"; do
             printf "%s\n" "${opt}" >> "${jvm_args_filepath}"
@@ -655,7 +655,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     fi
     
     # Stage tini as init replacement
-    set -- tini -g --
+    set -- tini -g -- "${CMD[@]}"
 
     # Check for running as root and adjust permissions as needed, then stage dropdown to `ignition` user for gateway launch.
     if [ "$(id -u)" = "0" ]; then
@@ -708,4 +708,4 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     echo 'init     | Starting Ignition Gateway...'
 fi
 
-exec "$@" "${CMD[@]}"
+exec "$@"
