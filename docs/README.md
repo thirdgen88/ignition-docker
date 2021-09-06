@@ -89,8 +89,7 @@ For examples and guidance on using the Ignition Docker Image alongside other ser
 ## Container Customization
 
 _New with 7.9.10 Docker image as of 2018-12-29!_
-_New 8.0.x options added on 2019-04-27!_
-_New 8.1.x options added on 2020-11-15!_
+_Check tables for required versions for 8.0 and 8.1 images!_
 
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
 
@@ -121,6 +120,8 @@ Variable | Description |
 `IGNITION_EDITION` | Defaults to `FULL`, choose `FULL`, `EDGE`, or `MAKER` to set the Ignition Gateway type on initial launch
 `IGNITION_ACTIVATION_TOKEN` | Token for automated gateway licensing/activation. **Required for _Maker_ edition.**
 `IGNITION_LICENSE_KEY` | License Key for automated gateway licensing/activation. **Required for _Maker_ edition.**
+`IGNITION_UID` | UID for Gateway user (defaults to 999) _only for > 8.1.9_
+`IGNITION_GID` | GID for Gateway user (defaults to 999) _only for > 8.1.9_
 
 In the table below, replace `n` with a numeric index, starting at `0`, for each connection definition.  You can define the `HOST` variable and omit the others to use the defaults.  Defaults listed with _gw_ use the Ignition gateway defaults, others use the defaults customized by the Ignition Docker entrypoint script.
 
@@ -276,6 +277,7 @@ If you wish to overwrite a built-in module with one from the bind-mount path, de
 ## How to integrate third party JDBC drivers
 
 _New with latest 7.9.13 and 8.0.7 images as of 2020-01-25!_
+_Updated and improved with 8.1.9 as of 2021-09-05!_
 
 To automatically link any associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.
 
@@ -289,11 +291,13 @@ To automatically link any associated third-party JDBC driver `*.jar` files, plac
          -e GATEWAY_ADMIN_PASSWORD=password \
          -d kcollins/ignition:8.0.7
 
-Note that if you remove the JDBC driver `.jar` file in the future, the `JDBCDRIVERS` database table within your gateway configuration database will likely still have the filename definition there, expecting a file to be available.
-
 If you wish to link in a JDBC driver with the same name as a built-in driver, declare an environment variable `GATEWAY_JDBC_RELINK=true`.  This will cause the built-in JDBC driver to be removed and the new one linked in its place prior to gateway startup.
 
 **UPDATE:** As of 8.1.x, third-party jdbc will not be available on the _first_ launch of a fresh gateway (subsequent restarts will work just fine).  This is due to the internal database not being created yet.  Use of a pre-configured gateway backup (even an empty one) bind-mounted to `/restore.gwbk` is recommended if you need to have full module functionality on first-launch.
+
+## Running as alternative user/group IDs
+
+As of 8.1.9, the container will now launch as root and allow for customizing the gateway UID/GID without building a custom image.  You can now specify `IGNITION_UID` and `IGNITION_GID` environment variables to values other than the default of `999`.  When the entrypoint runs, it will synchronize file permissions for the container before stepping down from root and launching as the target user.  This capability can be very handy for bind-mount situations..
 
 ## Upgrading a volume-persisted Ignition Container
 
