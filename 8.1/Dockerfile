@@ -38,6 +38,15 @@ ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/b
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
+# gosu Download Parameters
+ARG GOSU_VERSION="1.14"
+ARG GOSU_AMD64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-amd64"
+ARG GOSU_AMD64_DOWNLOAD_SHA256="bd8be776e97ec2b911190a82d9ab3fa6c013ae6d3121eea3d0bfd5c82a0eaf8c"
+ARG GOSU_ARMHF_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-armhf"
+ARG GOSU_ARMHF_DOWNLOAD_SHA256="abb1489357358b443789571d52b5410258ddaca525ee7ac3ba0dd91d34484589"
+ARG GOSU_ARM64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-arm64"
+ARG GOSU_ARM64_DOWNLOAD_SHA256="73244a858f5514a927a0f2510d533b4b57169b64d2aa3f9d98d92a7a7df80cea"
+
 # Retrieve Ignition Installer and Perform Ignition Installation
 ENV INSTALLER_PATH /root
 ENV INSTALLER_NAME "ignition-install.zip"
@@ -55,9 +64,23 @@ RUN set -exo pipefail; \
         wget -q --ca-certificate=/etc/ssl/certs/ca-certificates.crt --referer https://inductiveautomation.com/* -O "${INSTALLER_NAME}" "${!download_url_env}" && \
         if [[ ${BUILD_EDITION} != *"NIGHTLY"* ]]; then echo "${!download_sha256_env}" "${INSTALLER_NAME}" | sha256sum -c -; fi ; \
     else \
-        echo "Architecture ${dpkg_arch} download targets not defined, aborting build"; \
+        echo "Architecture ${dpkg_arch} download targets for Ignition not defined, aborting build"; \
         exit 1; \
     fi
+
+# Download gosu based on Detected Architecture
+RUN set -exo pipefail; \
+    dpkg_arch="$(dpkg --print-architecture | awk '{print toupper($0)}')"; \
+    download_url_env="GOSU_${dpkg_arch}_DOWNLOAD_URL"; \
+    download_sha256_env="GOSU_${dpkg_arch}_DOWNLOAD_SHA256"; \
+    if [[ -n "${!download_url_env}" ]] && [[ -n "${!download_sha256_env}" ]]; then \
+        wget -q --ca-certificate=/etc/ssl/certs/ca-certificates.crt -O "gosu" "${!download_url_env}" && \
+        echo "${!download_sha256_env}" "gosu" | sha256sum -c -; \
+    else \
+        echo "Architecture ${dpkg_arch} download targets for gosu not defined, aborting build"; \
+        exit 1; \
+    fi; \
+    chmod a+x "gosu"
 
 # Extract Installation Zip File
 RUN mkdir ignition && \
@@ -135,6 +158,7 @@ RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${IGNITION_INSTALL_LOCATION}
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
+COPY --from=downloader /root/gosu /usr/local/bin/
 RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
@@ -145,7 +169,7 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
 EXPOSE 8088
 
 # Launch Ignition
-USER ${IGNITION_UID}
+USER root
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 
 # Update path to include embedded java install location
@@ -157,5 +181,5 @@ COPY *.sh /usr/local/bin/
 STOPSIGNAL SIGINT
 
 # Prepare Execution Settings
-ENTRYPOINT [ "tini", "-g", "--", "/usr/local/bin/docker-entrypoint.sh" ]
+ENTRYPOINT [ "/usr/local/bin/docker-entrypoint.sh" ]
 CMD [ "./ignition-gateway" ]
