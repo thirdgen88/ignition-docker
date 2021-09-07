@@ -85,7 +85,7 @@ RUN set -exo pipefail; \
 # Extract Installation Zip File
 RUN mkdir ignition && \
     unzip -q ${INSTALLER_NAME} -d ignition/ && \
-    chmod +x ignition/gwcmd.sh ignition/ignition-gateway ignition/ignition.sh
+    chmod +x ignition/ignition-gateway ignition/*.sh
 
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
