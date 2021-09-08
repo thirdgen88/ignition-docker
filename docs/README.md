@@ -1,6 +1,6 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.1.9`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/nightly/8.1/Dockerfile)
+* [`8.1.10`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.1/Dockerfile)
 * [`7.9.18`, `7.9`, `7.9.18-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
 ## Quick Reference
