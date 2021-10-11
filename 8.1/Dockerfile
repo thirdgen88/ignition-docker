@@ -104,6 +104,8 @@ RUN mkdir -p /var/lib/ignition && \
     ln -s /var/lib/ignition/data data && \
     ln -s /var/lib/ignition/user-lib user-lib && \
     ln -s /var/log/ignition logs && \
+    ln -s /var/lib/ignition/data/ssl.pfx webserver/ssl.pfx && \
+    ln -s /var/lib/ignition/data/csr.pfx webserver/csr.pfx && \
     ln -s /var/lib/ignition/data/metro-keystore webserver/metro-keystore
 
 # Extract embedded Java based on architecture

@@ -306,9 +306,13 @@ check_for_upgrade() {
             # Move in-image data volume contents to /data to seed the volume
             cp -Ru --preserve=links "${IGNITION_INSTALL_LOCATION}/data/"* "${DATA_VOLUME_LOCATION}/"
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            rm "${IGNITION_INSTALL_LOCATION}/data" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
             ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             # Drop another symbolic link in original location for compatibility
             rm -rf /var/lib/ignition/data
             ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
