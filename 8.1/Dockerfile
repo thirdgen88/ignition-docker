@@ -162,7 +162,8 @@ COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
 COPY --from=downloader /root/gosu /usr/local/bin/
-RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
+RUN ln -s /dev/stdout /var/log/ignition/wrapper.log && \
+    chown -h ${IGNITION_UID}:${IGNITION_GID} /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \

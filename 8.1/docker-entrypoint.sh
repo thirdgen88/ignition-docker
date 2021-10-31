@@ -402,6 +402,8 @@ check_for_upgrade() {
                 ;;
         esac
     fi
+
+    chown "${IGNITION_UID}:${IGNITION_GID}" "${init_file_path}"
 }
 
 # Only collect additional arguments if we're not running a shell
@@ -534,7 +536,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         for opt in "${JVM_OPTIONS[@]}"; do
             printf "%s\n" "${opt}" >> "${jvm_args_filepath}"
         done
-
+        chown "${IGNITION_UID}:${IGNITION_GID}" "${jvm_args_filepath}"
         WRAPPER_OPTIONS+=( "wrapper.java.additional_file=${jvm_args_filepath}" )
     fi
 
