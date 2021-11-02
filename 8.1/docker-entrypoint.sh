@@ -658,7 +658,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     set -- tini -g -- "${CMD[@]}"
 
     # Check for running as root and adjust permissions as needed, then stage dropdown to `ignition` user for gateway launch.
-    if [ "$(id -u)" = "0" ]; then
+    if [ "$(id -u)" = "0" ] && [ "${IGNITION_UID}" != "0" ]; then
         # Obtain ignition UID/GID
         ignition_uid_current=$(id -u ignition)
         ignition_gid_current=$(id -g ignition)
