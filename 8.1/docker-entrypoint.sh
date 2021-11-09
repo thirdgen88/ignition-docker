@@ -311,9 +311,9 @@ check_for_upgrade() {
                 "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx" \
                 "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
-            ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
-            ln -s "${DATA_VOLUME_LOCATION}/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
-            ln -s "${DATA_VOLUME_LOCATION}/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/local/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/local/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/local/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             # Drop another symbolic link in original location for compatibility
             rm -rf /var/lib/ignition/data
             ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
@@ -328,9 +328,9 @@ check_for_upgrade() {
                 "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx" \
                 "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
-            ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
-            ln -s "${DATA_VOLUME_LOCATION}/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
-            ln -s "${DATA_VOLUME_LOCATION}/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/local/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/local/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/local/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             # Remove the in-image data folder (that presumably is still fresh, extra safety check here)
             # and place a symbolic link to the /data volume for compatibility
             if [ ! -a "/var/lib/ignition/data/db/config.idb" ]; then
