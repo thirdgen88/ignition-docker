@@ -6,7 +6,7 @@ ARG IGNITION_RC_VERSION=""
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
 
-FROM ubuntu:latest AS downloader
+FROM ubuntu:20.04 AS downloader
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 ARG BUILD_EDITION
@@ -82,10 +82,17 @@ RUN set -exo pipefail; \
     fi; \
     chmod a+x "gosu"
 
+# Zip File Exclusion Build Argument
+ARG ZIP_EXCLUSION_RESOURCE_LIST
+ARG ZIP_EXCLUSION_MODULE_LIST
+ARG ZIP_EXCLUSION_ARCHITECTURE_LIST
+
 # Extract Installation Zip File
-RUN mkdir ignition && \
-    unzip -q ${INSTALLER_NAME} -d ignition/ && \
-    chmod +x ignition/ignition-gateway ignition/*.sh
+COPY extract-zip.sh .
+RUN ./extract-zip.sh -f "${INSTALLER_NAME}" \
+    "${ZIP_EXCLUSION_RESOURCE_LIST:+-xr}" "${ZIP_EXCLUSION_RESOURCE_LIST}" \
+    "${ZIP_EXCLUSION_MODULE_LIST+:-xm}" "${ZIP_EXCLUSION_MODULE_LIST}" \
+    "${ZIP_EXCLUSION_ARCHITECTURE_LIST:+-xa}" "${ZIP_EXCLUSION_ARCHITECTURE_LIST}"
 
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
