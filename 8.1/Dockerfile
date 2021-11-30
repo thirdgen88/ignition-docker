@@ -104,7 +104,10 @@ RUN mkdir -p /var/lib/ignition && \
     ln -s /var/lib/ignition/data data && \
     ln -s /var/lib/ignition/user-lib user-lib && \
     ln -s /var/log/ignition logs && \
-    ln -s /var/lib/ignition/data/metro-keystore webserver/metro-keystore
+    mkdir -p /var/lib/ignition/data/local && \
+    ln -s /var/lib/ignition/data/local/ssl.pfx webserver/ssl.pfx && \
+    ln -s /var/lib/ignition/data/local/csr.pfx webserver/csr.pfx && \
+    ln -s /var/lib/ignition/data/local/metro-keystore webserver/metro-keystore
 
 # Extract embedded Java based on architecture
 RUN set -exo pipefail; \
@@ -159,7 +162,8 @@ COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
 COPY --from=downloader /root/gosu /usr/local/bin/
-RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
+RUN ln -s /dev/stdout /var/log/ignition/wrapper.log && \
+    chown -h ${IGNITION_UID}:${IGNITION_GID} /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
