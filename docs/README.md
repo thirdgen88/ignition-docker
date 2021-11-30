@@ -1,6 +1,7 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.1.11`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.1/Dockerfile)
+* [`8.1.12`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.1/Dockerfile)
+* [`8.1.12-slim`, `8.1-slim`, `latest-slim`, `nightly-slim`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.1/Dockerfile)
 * [`7.9.18`, `7.9`, `7.9.18-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
 
 ## Quick Reference
@@ -309,9 +310,13 @@ Note:  If you attempt to start a container bound to a newer-version image, an er
 
 ## Multi-Architecture Builds
 
-The 8.0 image now supports both `arm64` (64-bit) and `armhf` (32-bit) architectures.  This means you can now run the Ignition or Ignition Edge containers on your Raspberry Pi (among other ARM-based devices).  Use the same image tags you use normally--it will automatically pull the image appropriate for your architecture from Docker Hub.  
+The 8.1 image now supports both `arm64` (64-bit) and `armhf` (32-bit) architectures.  This means you can now run the Ignition or Ignition Edge containers on your Raspberry Pi (among other ARM-based devices).  Use the same image tags you use normally--it will automatically pull the image appropriate for your architecture from Docker Hub.  
 
 As of 7.9.17+, images for `armhf` (32-bit) architecture are also built into the 7.9 tags.
+
+## Slim Images
+
+As of 8.1.12, there are now `-slim` image tags available that omit the Designer Launcher, Vision Client Launcher, and Perspective Workstation resources for the various OS platforms from the image.  See [Hosted Launcher Installers](https://docs.inductiveautomation.com/display/DOC81/Launchers+and+Workstation#LaunchersandWorkstation-HostedLauncherInstallers) for more details.
 
 ## License
 

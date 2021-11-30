@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 port="${GATEWAY_HTTP_PORT:-8088}"
 

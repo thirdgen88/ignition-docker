@@ -1,12 +1,12 @@
 # Ignition Version
-ARG IGNITION_VERSION="8.1.11"
+ARG IGNITION_VERSION="8.1.12"
 # IGNITION_RC_VERSION should be something like `8.1.8-rc1` when applicable, otherwise blank
 ARG IGNITION_RC_VERSION=""
 
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
 
-FROM ubuntu:latest AS downloader
+FROM ubuntu:20.04 AS downloader
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 ARG BUILD_EDITION
@@ -15,26 +15,26 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.11/20211019-1212/Ignition-linux-64-8.1.11.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="12d6c6c0e30b68b062eccf851efa877b5271b8b7896b97c2d5154a025456da10"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.12/20211118-1003/Ignition-linux-64-8.1.12.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="1ce33dc7f1a397608859d483ef256e2fcd694870033a5934d83c4d4a7d03a056"
 ARG IGNITION_RC_AMD64_DOWNLOAD_URL=""
-ARG IGNITION_RC_AMD64_DOWNLOAD_SHA256="abb4bd393dfb6ee6600ab59bd9d797fdb85bf6ba956956a751ac40aab6fefa56"
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.12-SNAPSHOT/Ignition-linux-64-8.1.12-SNAPSHOT.zip"
+ARG IGNITION_RC_AMD64_DOWNLOAD_SHA256=""
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.13-SNAPSHOT/Ignition-linux-64-8.1.13-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.11/20211019-1212/Ignition-linux-armhf-8.1.11.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="b326903cbc66c1e9aec6ddc1ff1b3c1057f3996c215dd00a27fbccf9b0470235"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.12/20211118-1003/Ignition-linux-armhf-8.1.12.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="5c269ad8755660cc7ef667765541b3ac6e5f87b63d23661dc4570bc4b09ca2fb"
 ARG IGNITION_RC_ARMHF_DOWNLOAD_URL=""
-ARG IGNITION_RC_ARMHF_DOWNLOAD_SHA256="7d053494a1212190b5e9ff2f349996fcb13620f42fd741e945b957c8d286bb7b"
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.12-SNAPSHOT/Ignition-linux-armhf-8.1.12-SNAPSHOT.zip"
+ARG IGNITION_RC_ARMHF_DOWNLOAD_SHA256=""
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.13-SNAPSHOT/Ignition-linux-armhf-8.1.13-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.11/20211019-1212/Ignition-linux-aarch64-8.1.11.zip"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="7b88a74d3b4774e8b3f2bc4ac88a5bb6cdbb5c0802a031bae14a8882588c7d5d"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.12/20211118-1003/Ignition-linux-aarch64-8.1.12.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="4e4d849c7f06b85c3145e5fe8480450a90da416eca7ae77db758dd61f3748c25"
 ARG IGNITION_RC_ARM64_DOWNLOAD_URL=""
-ARG IGNITION_RC_ARM64_DOWNLOAD_SHA256="b07a3c8475be467d8a42238906efb59ad1508f19320dfbb93a5c6c4b903292e7"
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.12-SNAPSHOT/Ignition-linux-aarch64-8.1.12-SNAPSHOT.zip"
+ARG IGNITION_RC_ARM64_DOWNLOAD_SHA256=""
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.13-SNAPSHOT/Ignition-linux-aarch64-8.1.13-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
@@ -82,10 +82,17 @@ RUN set -exo pipefail; \
     fi; \
     chmod a+x "gosu"
 
+# Zip File Exclusion Build Argument
+ARG ZIP_EXCLUSION_RESOURCE_LIST
+ARG ZIP_EXCLUSION_MODULE_LIST
+ARG ZIP_EXCLUSION_ARCHITECTURE_LIST
+
 # Extract Installation Zip File
-RUN mkdir ignition && \
-    unzip -q ${INSTALLER_NAME} -d ignition/ && \
-    chmod +x ignition/ignition-gateway ignition/*.sh
+COPY extract-zip.sh .
+RUN ./extract-zip.sh -f "${INSTALLER_NAME}" \
+    "${ZIP_EXCLUSION_RESOURCE_LIST:+-xr}" "${ZIP_EXCLUSION_RESOURCE_LIST}" \
+    "${ZIP_EXCLUSION_MODULE_LIST+:-xm}" "${ZIP_EXCLUSION_MODULE_LIST}" \
+    "${ZIP_EXCLUSION_ARCHITECTURE_LIST:+-xa}" "${ZIP_EXCLUSION_ARCHITECTURE_LIST}"
 
 # Change to Ignition folder
 WORKDIR ${INSTALLER_PATH}/ignition
@@ -104,7 +111,10 @@ RUN mkdir -p /var/lib/ignition && \
     ln -s /var/lib/ignition/data data && \
     ln -s /var/lib/ignition/user-lib user-lib && \
     ln -s /var/log/ignition logs && \
-    ln -s /var/lib/ignition/data/metro-keystore webserver/metro-keystore
+    mkdir -p /var/lib/ignition/data/local && \
+    ln -s /var/lib/ignition/data/local/ssl.pfx webserver/ssl.pfx && \
+    ln -s /var/lib/ignition/data/local/csr.pfx webserver/csr.pfx && \
+    ln -s /var/lib/ignition/data/local/metro-keystore webserver/metro-keystore
 
 # Extract embedded Java based on architecture
 RUN set -exo pipefail; \
@@ -159,7 +169,8 @@ COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
 COPY --from=downloader /root/gosu /usr/local/bin/
-RUN ln -s /dev/stdout /var/log/ignition/wrapper.log
+RUN ln -s /dev/stdout /var/log/ignition/wrapper.log && \
+    chown -h ${IGNITION_UID}:${IGNITION_GID} /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \

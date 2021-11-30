@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eo pipefail
 shopt -s nullglob
 if [[ "${ENTRYPOINT_DEBUG_ENABLED}" = "true" ]]; then set -x; fi
@@ -306,9 +306,14 @@ check_for_upgrade() {
             # Move in-image data volume contents to /data to seed the volume
             cp -Ru --preserve=links "${IGNITION_INSTALL_LOCATION}/data/"* "${DATA_VOLUME_LOCATION}/"
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            rm -f "${IGNITION_INSTALL_LOCATION}/data" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
-            ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/local/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/local/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/local/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             # Drop another symbolic link in original location for compatibility
             rm -rf /var/lib/ignition/data
             ln -s "${DATA_VOLUME_LOCATION}" /var/lib/ignition/data
@@ -318,9 +323,14 @@ check_for_upgrade() {
         if [[ ${empty_volume_check} -eq 0 ]]; then
             echo "init     | Existing Volume detected at /data, relinking data volume locations prior to Gateway Launch..."
             # Replace symbolic links in base install location
-            rm "${IGNITION_INSTALL_LOCATION}/data" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            rm -f "${IGNITION_INSTALL_LOCATION}/data" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx" \
+                "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             ln -s "${DATA_VOLUME_LOCATION}" "${IGNITION_INSTALL_LOCATION}/data"
-            ln -s "${DATA_VOLUME_LOCATION}/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/local/metro-keystore" "${IGNITION_INSTALL_LOCATION}/webserver/metro-keystore"
+            ln -s "${DATA_VOLUME_LOCATION}/local/csr.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/csr.pfx"
+            ln -s "${DATA_VOLUME_LOCATION}/local/ssl.pfx" "${IGNITION_INSTALL_LOCATION}/webserver/ssl.pfx"
             # Remove the in-image data folder (that presumably is still fresh, extra safety check here)
             # and place a symbolic link to the /data volume for compatibility
             if [ ! -a "/var/lib/ignition/data/db/config.idb" ]; then
@@ -329,6 +339,24 @@ check_for_upgrade() {
             else
                 echo "init     | WARNING: Existing gateway instance detected in /var/lib/ignition/data, skipping purge/relink to ${DATA_VOLUME_LOCATION}..."
             fi
+        fi
+
+        if [ ! -d "${DATA_VOLUME_LOCATION}/local" ]; then
+            echo "init     | Creating missing data/local folder..."
+            mkdir -p "${DATA_VOLUME_LOCATION}/local"
+        fi
+
+        if [ -f "${DATA_VOLUME_LOCATION}/metro-keystore" ]; then
+            echo -n "init     | metro-keystore found in legacy location at '${DATA_VOLUME_LOCATION}'"
+            set +e
+            if [ -s "${DATA_VOLUME_LOCATION}/metro-keystore" ]; then
+                echo ", attempting to migrate to '${DATA_VOLUME_LOCATION}/local'..."
+                cp "${DATA_VOLUME_LOCATION}/metro-keystore" "${DATA_VOLUME_LOCATION}/local/"
+            else
+                echo " with zero size, removing..."
+            fi
+            rm "${DATA_VOLUME_LOCATION}/metro-keystore"
+            set -e
         fi
 
         if [ -f "${init_file_path}" ]; then
@@ -374,6 +402,8 @@ check_for_upgrade() {
                 ;;
         esac
     fi
+
+    chown "${IGNITION_UID}:${IGNITION_GID}" "${init_file_path}"
 }
 
 # Only collect additional arguments if we're not running a shell
@@ -499,6 +529,17 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         )
     fi
 
+    # Add hosted launchers option when launchers are absent from the filesystem
+    declare launch_files=( 
+        "${IGNITION_INSTALL_LOCATION}lib/core/launch/perspectiveworkstation."*
+        "${IGNITION_INSTALL_LOCATION}lib/core/launch/visionclientlauncher."*
+        "${IGNITION_INSTALL_LOCATION}lib/core/launch/designerlauncher."*
+    )
+    if (( ${#launch_files[@]} == 0 )); then
+        echo "init     | Launchers absent from image, enabling hosted launchers."
+        JVM_OPTIONS+=( "-Dignition.hostedLaunchers=true" )
+    fi
+
     # Collect JVM Arguments
     if [[ ${#JVM_OPTIONS[@]} -gt 0 ]]; then
         jvm_args_filepath=$(mktemp --tmpdir="${IGNITION_INSTALL_LOCATION}/temp" ignition_jvm_args-XXXXXXX)
@@ -506,7 +547,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         for opt in "${JVM_OPTIONS[@]}"; do
             printf "%s\n" "${opt}" >> "${jvm_args_filepath}"
         done
-
+        chown "${IGNITION_UID}:${IGNITION_GID}" "${jvm_args_filepath}"
         WRAPPER_OPTIONS+=( "wrapper.java.additional_file=${jvm_args_filepath}" )
     fi
 
@@ -658,7 +699,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     set -- tini -g -- "${CMD[@]}"
 
     # Check for running as root and adjust permissions as needed, then stage dropdown to `ignition` user for gateway launch.
-    if [ "$(id -u)" = "0" ]; then
+    if [ "$(id -u)" = "0" ] && [ "${IGNITION_UID}" != "0" ]; then
         # Obtain ignition UID/GID
         ignition_uid_current=$(id -u ignition)
         ignition_gid_current=$(id -g ignition)
