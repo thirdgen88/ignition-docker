@@ -50,7 +50,7 @@ include ../.env
 	@echo "======== BUILDING IGNITION NIGHTLY IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"
 	$(IGNITION_VERSION_CHECK)
 	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
-		--build-arg BUILD_EDITION=NIGHTLY \	
+		--build-arg BUILD_EDITION=NIGHTLY \
 		-t ${BASE_IMAGE_NAME}:nightly -f Dockerfile .
 
 .build-slim-nightly:
@@ -59,7 +59,7 @@ include ../.env
 	docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
 		--build-arg BUILD_EDITION=NIGHTLY \
 		--build-arg ZIP_EXCLUSION_RESOURCE_LIST=designerlauncher,perspectiveworkstation,visionclientlauncher \
-		--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \		
+		--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \
 		-t ${BASE_IMAGE_NAME}:nightly-slim -f Dockerfile .
 
 .multibuild-full: CACHE_TAG=cache-${IGNITION_VERSION}
@@ -79,7 +79,7 @@ include ../.env
 	docker buildx build ${DOCKER_BUILDX_CACHE_OPTS} ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
 		--build-arg BUILD_EDITION=STABLE \
 		--build-arg ZIP_EXCLUSION_RESOURCE_LIST=designerlauncher,perspectiveworkstation,visionclientlauncher \
-		--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \		
+		--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \
 		-t ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-slim --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-slim --tag ${BASE_IMAGE_NAME}:8.1-slim
 	docker buildx imagetools create ${BASE_IMAGE_NAME}:${IGNITION_VERSION}-slim --tag ${BASE_IMAGE_NAME}:latest-slim
@@ -100,7 +100,7 @@ include ../.env
 		docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
 			--build-arg BUILD_EDITION=RC \
 			--build-arg ZIP_EXCLUSION_RESOURCE_LIST=designerlauncher,perspectiveworkstation,visionclientlauncher \
-			--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \	
+			--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \
 			-t ${BASE_IMAGE_NAME}:${IGNITION_RC_VERSION}-slim --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push; \
 	else \
 		echo "======== SKIPPING IGNITION RELEASE CANDIDATE IMAGE (MULTI ARCHITECTURE) ========"; \
@@ -117,7 +117,7 @@ include ../.env
 	docker buildx build ${DOCKER_BUILDX_OPTS} ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
 		--build-arg BUILD_EDITION=NIGHTLY \
 		--build-arg ZIP_EXCLUSION_RESOURCE_LIST=designerlauncher,perspectiveworkstation,visionclientlauncher \
-		--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \	
+		--build-arg ZIP_EXCLUSION_ARCHITECTURE_LIST=mac,linux64,win64 \
 		-t ${BASE_IMAGE_NAME}:nightly-slim --platform=${DOCKER_MULTI_ARCH} -f Dockerfile . --push
 
 .push-registry:
