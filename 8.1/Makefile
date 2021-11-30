@@ -27,7 +27,6 @@ include ../.env
 .build-full-rc:
 	@if [[ -n "${IGNITION_RC_VERSION}" ]]; then \
 		echo "======== BUILDING IGNITION RELEASE CANDIDATE IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"; \
-		$(IGNITION_VERSION_CHECK) \
 		docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
 		--build-arg BUILD_EDITION=RC \
 		-t ${BASE_IMAGE_NAME}:${IGNITION_RC_VERSION} -f Dockerfile .; \
@@ -38,7 +37,6 @@ include ../.env
 .build-slim-rc:
 	@if [[ -n "${IGNITION_RC_VERSION}" ]]; then \
 		echo "======== BUILDING IGNITION RELEASE CANDIDATE SLIM IMAGE LOCALLY (SINGLE ARCHITECTURE) ========"; \
-		$(IGNITION_VERSION_CHECK) \
 		docker build ${DOCKER_BUILD_OPTS} ${DOCKER_BUILD_ARGS} \
 		--build-arg BUILD_EDITION=RC \
 		--build-arg ZIP_EXCLUSION_RESOURCE_LIST=designerlauncher,perspectiveworkstation,visionclientlauncher \
