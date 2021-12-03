@@ -530,10 +530,10 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     fi
 
     # Add hosted launchers option when launchers are absent from the filesystem
-    declare launch_files=( 
-        "${IGNITION_INSTALL_LOCATION}lib/core/launch/perspectiveworkstation."*
-        "${IGNITION_INSTALL_LOCATION}lib/core/launch/visionclientlauncher."*
-        "${IGNITION_INSTALL_LOCATION}lib/core/launch/designerlauncher."*
+    declare -a launch_files=( 
+        "${IGNITION_INSTALL_LOCATION}/lib/core/launch/perspectiveworkstation."*
+        "${IGNITION_INSTALL_LOCATION}/lib/core/launch/visionclientlauncher."*
+        "${IGNITION_INSTALL_LOCATION}/lib/core/launch/designerlauncher."*
     )
     if (( ${#launch_files[@]} == 0 )); then
         echo "init     | Launchers absent from image, enabling hosted launchers."
