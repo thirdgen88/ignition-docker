@@ -1,0 +1,44 @@
+name: Build (Generic)
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Make target for multibuild'
+        required: true
+        type: string
+      platforms:
+        description: 'Comma-separated platforms for buildkit'
+        default: 'linux/arm,linux/amd64,linux/arm64'
+        type: string
+      base_image_name:
+        default: 'kcollins/ghactions-testing'
+        type: string
+    secrets:
+      dockerhub_username:
+        required: true
+      dockerhub_token:
+        required: true
+
+jobs:
+  make-multibuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.4.0
+      - name: QEMU Setup
+        id: qemu
+        uses: docker/setup-qemu-action@v1.2.0
+        with:
+          image: tonistiigi/binfmt:qemu-v6.1.0
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+      - name: Buildx Setup
+        id: buildx
+        uses: docker/setup-buildx-action@v1.6.0
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.dockerhub_username }}
+          password: ${{ secrets.dockerhub_token }}
+      - name: Multibuild
+        run: make .multibuild-${{ inputs.image_tag }} BASE_IMAGE_NAME=${{ inputs.base_image_name }} DOCKER_MULTI_ARCH=${{ inputs.platforms }}

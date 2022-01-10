@@ -1,0 +1,14 @@
+name: 8.1 Build
+on:
+  push:
+    branches:
+      - 'release/8.1.*'
+
+jobs:
+  call-multibuild:
+    uses: thirdgen88/ignition-docker/.github/workflows/multibuild.yml@main
+    with:
+      image_tag: 8.1
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}

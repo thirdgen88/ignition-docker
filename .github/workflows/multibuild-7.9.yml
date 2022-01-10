@@ -1,0 +1,14 @@
+name: 7.9 Build
+on:
+  push:
+    branches:
+      - 'release/7.9.*'
+
+jobs:
+  call-multibuild:
+    uses: thirdgen88/ignition-docker/.github/workflows/multibuild.yml@main
+    with:
+      image_tag: 7.9
+    secrets:
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
