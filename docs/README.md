@@ -1,8 +1,8 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.1.13`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.1/Dockerfile)
-* [`8.1.13-slim`, `8.1-slim`, `latest-slim`, `nightly-slim`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/8.1/Dockerfile)
-* [`7.9.18`, `7.9`, `7.9.18-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/master/7.9/Dockerfile)
+* [`8.1.13`, `8.1`, `latest`, `nightly`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/8.1/Dockerfile)
+* [`8.1.13-slim`, `8.1-slim`, `latest-slim`, `nightly-slim`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/8.1/Dockerfile)
+* [`7.9.18`, `7.9`, `7.9.18-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/7.9/Dockerfile)
 
 ## Quick Reference
 
@@ -14,7 +14,7 @@ Kevin Collins
 * **Supported architectures**:
 `amd64`, `armhf`, `arm64`  ([More Info](#multi-architecture-builds))
 
-* **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/master/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/master/docs))
+* **Source of this description:** https://github.com/thirdgen88/ignition-docker/tree/main/docs ([History](https://github.com/thirdgen88/ignition-docker/commits/main/docs))
 
 ## What is Ignition?
 
