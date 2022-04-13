@@ -567,7 +567,10 @@ if [ "$1" = './ignition-gateway' ]; then
     # Perform module enablement/disablement
     enable_disable_modules "${GATEWAY_MODULES_ENABLED}"
 
+    # Stage tini as init replacement
+    set -- tini -g -- "${CMD[@]}"
+
     echo 'Starting Ignition Gateway...'
 fi
 
-exec "${CMD[@]}"
+exec "$@"

@@ -87,7 +87,9 @@ LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu libatomic1
+RUN apt-get update && \
+    apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu libatomic1 tini && \
+    rm -rf /var/lib/apt/lists/*
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
@@ -129,6 +131,8 @@ ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 # Copy in Entrypoint and helper scripts
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY accept-gwnetwork.sh /usr/local/bin/
+
+STOPSIGNAL SIGINT
 
 # Prepare Execution Settings
 ENTRYPOINT [ "docker-entrypoint.sh" ]
