@@ -5,7 +5,11 @@ shopt -s nullglob
 # Local initialization
 INIT_FILE=/usr/local/share/ignition/data/init.properties
 CMD=( "$@" )
-WRAPPER_OPTIONS=( )
+WRAPPER_OPTIONS=(
+    "wrapper.console.loglevel=NONE"
+    "wrapper.logfile.format=PTM"
+    "wrapper.logfile.rollmode=NONE"
+)
 JAVA_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
