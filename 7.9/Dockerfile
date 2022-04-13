@@ -104,7 +104,7 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM adoptopenjdk:8-jre-hotspot-bionic as final
+FROM eclipse-temurin:8-jre-focal as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 
