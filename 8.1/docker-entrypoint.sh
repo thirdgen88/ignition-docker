@@ -33,10 +33,6 @@ fi
 # shellcheck disable=SC2001   # since we really need a regex here
 IMAGE_VERSION=$(echo "${IMAGE_VERSION}" | sed 's/-rc[0-9]$//')
 
-# Additional local initialization (used by background scripts)
-IGNITION_EDITION=$(echo "${IGNITION_EDITION:-standard}" | awk '{print tolower($0)}')
-export IGNITION_EDITION
-
 # Init Properties Helper Functions
 # usage: add_to_init KEY ENV_VAR_NAME
 #    ie: add_to_init gateway.network.0.Enabled GATEWAY_NETWORK_0_ENABLED
@@ -406,6 +402,26 @@ check_for_upgrade() {
     chown "${IGNITION_UID}:${IGNITION_GID}" "${init_file_path}"
 }
 
+# usage: retrieve_ignition_edition
+# return value: a valid IGNITION_EDITION value from either the ignition.conf if not explicitly set via the environment.
+retrieve_ignition_edition() {
+    local -l ignition_edition
+
+    # Check ignition.conf if we're not driven by an environment variable
+    if [[ ! -v IGNITION_EDITION ]]; then
+        ignition_edition=$(grep -Po '(?i)(?<=wrapper.java.additional.\d=-Dedition=)(edge|maker|standard)' < "${IGNITION_INSTALL_LOCATION}/data/ignition.conf")
+    else
+        ignition_edition="${IGNITION_EDITION:-standard}"
+    fi
+
+    if [[ "${ignition_edition}" =~ ^maker|edge|standard|$ ]]; then
+        echo "${ignition_edition:-standard}"  # the default of standard will fill in the empty case
+    else
+        echo >&2 "init     | WARNING: Invalid edition (${IGNITION_EDITION}) specified, should be 'maker', 'edge', or 'standard'; using 'standard'."
+        echo "standard"
+    fi
+}
+
 # Only collect additional arguments if we're not running a shell
 if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     if [[ "$1" != './ignition-gateway' ]]; then
@@ -451,21 +467,12 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     # Validate environment variables surrounding IGNITION_EDITION
     file_env 'IGNITION_ACTIVATION_TOKEN'
     file_env 'IGNITION_LICENSE_KEY'
-    if [[ ${IGNITION_EDITION} =~ "maker" ]]; then
+    if [[ "${IGNITION_EDITION:-}" =~ ^maker$ ]]; then
         # Ensure that License Key and Activation Tokens are supplied
         if [ -z "${IGNITION_ACTIVATION_TOKEN+x}" ] || [ -z "${IGNITION_LICENSE_KEY+x}" ]; then
             echo >&2 "init     | Missing ENV variables, must specify activation token and license key for edition: ${IGNITION_EDITION}"
             exit 1
         fi
-    else
-        case ${IGNITION_EDITION} in
-          maker | standard | full | edge)
-            ;;
-          *)
-            echo >&2 "init     | Invalid edition (${IGNITION_EDITION}) specified, must be 'maker', 'edge', or 'standard'"
-            exit 1
-            ;;
-        esac
     fi
 
     # Examine memory constraints and apply to Java arguments
@@ -653,37 +660,54 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     
     # Gateway Restore
     if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
-        # Set restore path based on disabled startup condition
-        # TODO: fire gwcmd instead of this custom logic, still need to discover the resultant file though for the module registration
-        if [ "${GATEWAY_RESTORE_DISABLED}" == "1" ]; then
-            restore_file_path="${IGNITION_INSTALL_LOCATION}/data/__restore_disabled_$(( $(date '+%s%N') / 1000000)).gwbk"
-        else
-            restore_file_path="${IGNITION_INSTALL_LOCATION}/data/__restore_$(( $(date '+%s%N') / 1000000)).gwbk"
+        gwcmd_restore_args=( "--restore" "/restore.gwbk" "-y" "-m" )
+        if [[ "${GATEWAY_RESTORE_DISABLED}" == "1" ]]; then
+            gwcmd_restore_args+=( "-d" )
         fi
 
-        echo 'init     | Placing restore file into location...'
-        cp /restore.gwbk "${restore_file_path}"
+        echo 'init     | Issuing gwcmd restore command'
+        gwcmd_restore_log="${IGNITION_INSTALL_LOCATION}/logs/gwcmd_restore.log"
+        ./gwcmd.sh "${gwcmd_restore_args[@]}" > "${gwcmd_restore_log}" 2>&1
+        readarray -d '' restore_file_paths < <( find "${IGNITION_INSTALL_LOCATION}/data/" -maxdepth 1 -name "__restore_*.gwbk" -print0 )
+        if [[ ${#restore_file_paths[@]} -eq 0 ]]; then
+            echo >&2 "init     | ERROR: error attempting to restore, see '${gwcmd_restore_log}' for output of gwcmd"
+            exit 1
+        elif [[ ${#restore_file_paths[@]} -gt 1 ]]; then
+            echo "init     | WARNING: Multiple restore gwbk files detected in data folder, removing all but latest:"
+            printf "init     |     %s\n" "${restore_file_paths[@]}"
+            for i in $(seq 0 $((${#restore_file_paths[@]}-2))); do
+                rm -f "${restore_file_paths[$i]}"
+            done
+        fi
 
         # Update gateway backup with module, jdbc definitions
+        echo 'init     | Updating restore file with module/jdbc definitions...'
+        restore_file_path="${restore_file_paths[-1]}"
         pushd "${IGNITION_INSTALL_LOCATION}/temp" > /dev/null 2>&1
         unzip -q "${restore_file_path}" db_backup_sqlite.idb
         disable_quickstart "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
         register-modules.sh "${GATEWAY_MODULE_RELINK}" "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
         register-jdbc.sh "${GATEWAY_JDBC_RELINK}" "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [[ ${ZIP_EXIT_CODE:=$?} == 12 ]]; then echo "No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
+        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [[ ${ZIP_EXIT_CODE:=$?} == 12 ]]; then echo "init     | No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "init     | Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
         popd > /dev/null 2>&1
+
+        # Perform environmental fixes to restored ignition.conf (seems to default to jre-nix even if on aarch64)
+        sed -E -i 's|^(set.JAVA_HOME=).*$|\1lib/runtime/jre|' "${IGNITION_INSTALL_LOCATION}/data/ignition.conf"
     else
         target_db="${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
         register-modules.sh "${GATEWAY_MODULE_RELINK}" "${target_db}"
         register-jdbc.sh "${GATEWAY_JDBC_RELINK}" "${target_db}"
     fi
 
+    # Initialize edition selection environment variable, possibly based on restored ignition.conf
+    IGNITION_EDITION=$(retrieve_ignition_edition)
+    export IGNITION_EDITION
+
     # Perform module enablement/disablement
     enable_disable_modules "${GATEWAY_MODULES_ENABLED}"
 
     # Export environment variables for auto-commissioning unless skip is set
     if [ "${GATEWAY_SKIP_COMMISSIONING}" != "1" ]; then
-
         if [[ $(compare_versions "${IMAGE_VERSION}" "8.1.8") -ge 0 ]]; then
             # Auto-commissioning logic built into 8.1.8+
             export ACCEPT_IGNITION_EULA=${ACCEPT_IGNITION_EULA:-Y}
