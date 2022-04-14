@@ -4,7 +4,7 @@ shopt -s nullglob
 DELAY=${1:-60}
 QUARANTINE=/var/lib/ignition/data/certificates/gateway_network/quarantine
 
-echo "Beginning automatic gateway network certificate acceptance (${DELAY}s)..."
+echo "init     | Beginning automatic gateway network certificate acceptance (${DELAY}s)..."
 
 for ((i=DELAY;i>0;i--)); do
     if [[ -d "${QUARANTINE}" ]]; then
@@ -18,4 +18,4 @@ for ((i=DELAY;i>0;i--)); do
     sleep 1
 done
 
-echo "Finished automatic gateway network certificate acceptance."
+echo "init     | Finished automatic gateway network certificate acceptance."

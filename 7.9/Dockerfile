@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="7.9.18"
+ARG IGNITION_VERSION="7.9.19"
 
 FROM ubuntu:latest AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
@@ -9,17 +9,26 @@ ARG IGNITION_VERSION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.18/20210629-1315/zip-installers/Ignition-linux-64-7.9.18.zip"
-ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="edabae1df43db7d8c878c90bc623d8d6a5bdab6450960d30349166bb45b69470"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.18/20210629-1315/zip-installers/Ignition-linux-64-7.9.18.zip"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="edabae1df43db7d8c878c90bc623d8d6a5bdab6450960d30349166bb45b69470"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.19/20220315-0901/zip-installers/Ignition-linux-64-7.9.19.zip"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="557a45140c3c6eecdaa282d4f2cded7f2a3693287d79c232e87537cfd3eeb54c"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.19/20220315-0901/zip-installers/Ignition-linux-64-7.9.19.zip"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="557a45140c3c6eecdaa282d4f2cded7f2a3693287d79c232e87537cfd3eeb54c"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.18/20210629-1315/zip-installers/Ignition-linux-armhf-7.9.18.zip"
-ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="c64e9c75130625c26710871ff1282aa748ffe8ee8280426762e24b48390fc9c7"
-ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.18/20210629-1315/zip-installers/Ignition-Edge-linux-armhf-7.9.18.zip"
-ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="1bf93fecdcf5845f2cd2878b020e40d349247b69869f028d8d2b24a87ddda95a"
+ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.19/20220315-0901/zip-installers/Ignition-linux-armhf-7.9.19.zip"
+ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="38c1b68395d71ca63e0bfa876875d30048264555d1d30a2e85e3e9fc7cd91c9a"
+ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.19/20220315-0901/zip-installers/Ignition-Edge-linux-armhf-7.9.19.zip"
+ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="176dc1e86f6719b80b6907ca6833ee4b83d9d1f9e7cdd2fd1dc58b9d4fd38d0a"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
+
+# gosu Download Parameters
+ARG GOSU_VERSION="1.14"
+ARG GOSU_AMD64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-amd64"
+ARG GOSU_AMD64_DOWNLOAD_SHA256="bd8be776e97ec2b911190a82d9ab3fa6c013ae6d3121eea3d0bfd5c82a0eaf8c"
+ARG GOSU_ARMHF_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-armhf"
+ARG GOSU_ARMHF_DOWNLOAD_SHA256="abb1489357358b443789571d52b5410258ddaca525ee7ac3ba0dd91d34484589"
+ARG GOSU_ARM64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-arm64"
+ARG GOSU_ARM64_DOWNLOAD_SHA256="73244a858f5514a927a0f2510d533b4b57169b64d2aa3f9d98d92a7a7df80cea"
 
 # Default Build Edition - FULL, EDGE
 ARG BUILD_EDITION="FULL"
@@ -45,6 +54,19 @@ RUN set -exo pipefail; \
         exit 1; \
     fi
 
+# Download gosu based on Detected Architecture
+RUN set -exo pipefail; \
+    dpkg_arch="$(dpkg --print-architecture | awk '{print toupper($0)}')"; \
+    download_url_env="GOSU_${dpkg_arch}_DOWNLOAD_URL"; \
+    download_sha256_env="GOSU_${dpkg_arch}_DOWNLOAD_SHA256"; \
+    if [[ -n "${!download_url_env}" ]] && [[ -n "${!download_sha256_env}" ]]; then \
+    wget -q --ca-certificate=/etc/ssl/certs/ca-certificates.crt -O "gosu" "${!download_url_env}" && \
+    echo "${!download_sha256_env}" "gosu" | sha256sum -c -; \
+    else \
+    echo "Architecture ${dpkg_arch} download targets for gosu not defined, aborting build"; \
+    exit 1; \
+    fi; \
+    chmod a+x "gosu"
 
 # Extract Installation Zip File
 RUN mkdir ignition && \
@@ -82,12 +104,14 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM adoptopenjdk:8-jre-hotspot-bionic as final
+FROM eclipse-temurin:8-jre-focal as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 ARG IGNITION_VERSION
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu libatomic1
+RUN apt-get update && \
+    apt-get install -y curl gettext procps pwgen zip unzip sqlite3 fontconfig fonts-dejavu libatomic1 tini && \
+    rm -rf /var/lib/apt/lists/*
 
 # Setup Install Targets
 ENV IGNITION_INSTALL_LOCATION="/usr/local/share/ignition"
@@ -109,6 +133,9 @@ RUN mkdir ${IGNITION_INSTALL_USERHOME} && \
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /root/ignition ${IGNITION_INSTALL_LOCATION}
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/lib/ignition /var/lib/ignition
 COPY --chown=${IGNITION_UID}:${IGNITION_GID} --from=downloader /var/log/ignition /var/log/ignition
+COPY --from=downloader /root/gosu /usr/local/bin/
+RUN ln -s /dev/stdout /var/log/ignition/wrapper.log && \
+    chown -h ${IGNITION_UID}:${IGNITION_GID} /var/log/ignition/wrapper.log
 
 # Declare Healthcheck
 HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
@@ -118,15 +145,16 @@ HEALTHCHECK --interval=10s --start-period=60s --timeout=3s \
 EXPOSE 8088 8043 8000
 
 # Launch Ignition
-USER ${IGNITION_UID}
+USER root
 WORKDIR ${IGNITION_INSTALL_LOCATION}
 
 # Update path to include embedded java install location
 ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 
 # Copy in Entrypoint and helper scripts
-COPY docker-entrypoint.sh /usr/local/bin/
-COPY accept-gwnetwork.sh /usr/local/bin/
+COPY *.sh /usr/local/bin/
+
+STOPSIGNAL SIGINT
 
 # Prepare Execution Settings
 ENTRYPOINT [ "docker-entrypoint.sh" ]

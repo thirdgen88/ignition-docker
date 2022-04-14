@@ -5,7 +5,11 @@ shopt -s nullglob
 # Local initialization
 INIT_FILE=/usr/local/share/ignition/data/init.properties
 CMD=( "$@" )
-WRAPPER_OPTIONS=( )
+WRAPPER_OPTIONS=(
+    "wrapper.console.loglevel=NONE"
+    "wrapper.logfile.format=PTM"
+    "wrapper.logfile.rollmode=NONE"
+)
 JAVA_OPTIONS=( )
 GATEWAY_MODULE_RELINK=${GATEWAY_MODULE_RELINK:-false}
 GATEWAY_JDBC_RELINK=${GATEWAY_JDBC_RELINK:-false}
@@ -18,7 +22,7 @@ add_to_init () {
     # The below takes the first argument as the key and indirects to the second argument
     # to assign the value.  It will skip if the value is undefined.
     if [ -n "${!2:-}" ]; then
-        echo "Added Init Setting ${1}=${!2}"
+        echo "init     | Added Init Setting ${1}=${!2}"
         echo "${1}=${!2}" >> $INIT_FILE
     fi
 }
@@ -101,79 +105,11 @@ health_check() {
 stop_process() {
     local pid="$1"
 
-    echo 'Shutting down interim provisioning gateway...'
+    echo 'init     | Shutting down interim provisioning gateway...'
     if ! kill -s TERM "$pid" || ! wait "$pid"; then
         echo >&2 'Ignition initialization process failed.'
         exit 1
     fi
-}
-
-# usage register_jdbc RELINK_ENABLED DB_LOCATION
-#   ie: register_jdbc true /var/lib/ignition/data/db/config.idb
-register_jdbc() {
-    if [ ! -d "/jdbc" ]; then
-        return 0  # Silently exit if there is no /jdbc path
-    else
-        echo "Searching for third-party JDBC drivers..."
-    fi
-
-    local RELINK_ENABLED="${1:-false}"
-    local DB_LOCATION="${2}"
-    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
-
-    # Get List of JDBC Drivers
-    mapfile -t JDBC_CLASSNAMES < <( "${SQLITE3[@]}" "SELECT CLASSNAME FROM JDBCDRIVERS;" )
-    JDBC_CLASSPATHS=( "${JDBC_CLASSNAMES[@]/.//}" )  # replace dots with slashes for the paths
-
-    # Remove Invalid Symbolic Links
-    find "${IGNITION_INSTALL_LOCATION}/user-lib/jdbc" -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
-
-    # Establish Symbolic Links for new jdbc drivers and tie into db
-    for jdbc in /jdbc/*.jar; do
-        local jdbc_basename jdbc_sourcepath jdbc_destpath jdbc_listing
-        jdbc_basename=$(basename "${jdbc}")
-        jdbc_sourcepath=${jdbc}
-        jdbc_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/jdbc/${jdbc_basename}"
-        
-        if [ -h "${jdbc_destpath}" ]; then
-            echo "Skipping Linked JDBC Driver: ${jdbc_basename}"
-            continue
-        fi
-
-        # Determine if jdbc driver is a candidate for linking based on searching
-        # the list of existing JDBC Classname entries gathered above.
-        jdbc_listing=$(unzip -l "${jdbc}")
-        for ((i=0; i<${#JDBC_CLASSPATHS[*]}; i++)); do
-            classpath=${JDBC_CLASSPATHS[i]}
-            classname=${JDBC_CLASSNAMES[i]}
-            case ${jdbc_listing} in
-                *$classpath*)
-                jdbc_targetclassname=$classname
-                break;;
-            esac
-        done
-
-        # If we didn't find a match, ...
-        if [ -z "${jdbc_targetclassname}" ]; then
-            continue  # ... skip to next JDBC driver in path
-        fi
-
-        if [ -e "${jdbc_destpath}" ]; then
-            if [ "${RELINK_ENABLED}" != true ]; then
-                echo "Skipping existing JDBC driver: ${jdbc_basename}"
-                continue
-            fi
-            echo "Relinking JDBC Driver: ${jdbc_basename}"
-            rm "${jdbc_destpath}"
-        else
-            echo "Linking JDBC Driver: ${jdbc_basename}"
-        fi
-        ln -s "${jdbc_sourcepath}" "${jdbc_destpath}"
-
-        # Update JDBCDRIVERS table
-        echo "  Updating JDBCDRIVERS table for classname ${jdbc_targetclassname}"
-        "${SQLITE3[@]}" "UPDATE JDBCDRIVERS SET JARFILE='${jdbc_basename}' WHERE CLASSNAME='${jdbc_targetclassname}'"
-    done
 }
 
 # usage enable_disable_modules MODULES_ENABLED
@@ -253,78 +189,6 @@ enable_disable_modules() {
 	echo
 }
 
-# usage register_modules RELINK_ENABLED DB_LOCATION
-#   ie: register_modules true /var/lib/ignition/data/db/config.idb
-register_modules() {
-    if [ ! -d "/modules" ]; then
-        return 0  # Silently exit if there is no /modules path
-    else
-        echo "Searching for third-party modules..."
-    fi
-
-    local RELINK_ENABLED="${1:-false}"
-    local DB_LOCATION="${2}"
-    local SQLITE3=( sqlite3 "${DB_LOCATION}" )
-
-    # Remove Invalid Symbolic Links
-    find "${IGNITION_INSTALL_LOCATION}/user-lib/modules" -type l ! -exec test -e {} \; -exec echo "Removing invalid symlink for {}" \; -exec rm {} \;
-
-    # Establish Symbolic Links for new modules and tie into db
-    for module in /modules/*.modl; do
-        local module_basename module_sourcepath module_destpath keytool
-        module_basename=$(basename "${module}")
-        module_sourcepath=${module}
-        module_destpath="${IGNITION_INSTALL_LOCATION}/user-lib/modules/${module_basename}"
-        keytool=$(which keytool)
-
-        if [ -h "${module_destpath}" ]; then
-            echo "Skipping Linked Module: ${module_basename}"
-            continue
-        fi
-
-        if [ -e "${module_destpath}" ]; then
-            if [ "${RELINK_ENABLED}" != true ]; then
-                echo "Skipping existing module: ${module_basename}"
-                continue
-            fi
-            echo "Relinking Module: ${module_basename}"
-            rm "${module_destpath}"
-        else
-            echo "Linking Module: ${module_basename}"
-        fi
-        ln -s "${module_sourcepath}" "${module_destpath}"
-
-        # Populate CERTIFICATES table
-        local cert_info thumbprint subject_name next_certificates_id thumbprint_already_exists
-        cert_info=$( unzip -qq -c "${module_sourcepath}" certificates.p7b | $keytool -printcert -v | head -n 9 )
-        thumbprint=$( echo "${cert_info}" | grep -A 2 "Certificate fingerprints" | grep SHA1 | cut -d : -f 2- | sed -e 's/\://g' | awk '{$1=$1;print tolower($0)}' )
-        subject_name=$( echo "${cert_info}" | grep -A 1 "Certificate\[1\]:" | grep -Po '^Owner: CN=\K(.+)(?=, OU)' | sed -e 's/"//g' )
-        echo "  Thumbprint: ${thumbprint}"
-        echo "  Subject Name: ${subject_name}"
-        next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" )
-        thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
-        if [ "${thumbprint_already_exists}" != "1" ]; then
-            echo "  Accepting Certificate as CERTIFICATES_ID=${next_certificates_id}"
-            "${SQLITE3[@]}" "INSERT INTO CERTIFICATES (CERTIFICATES_ID, THUMBPRINT, SUBJECTNAME) VALUES (${next_certificates_id}, x'${thumbprint}', '${subject_name}'); UPDATE SEQUENCES SET val=${next_certificates_id} WHERE name='CERTIFICATES_SEQ'"
-        else
-            echo "  Thumbprint already found in CERTIFICATES table, skipping INSERT"
-        fi
-
-        # Populate EULAS table
-        local next_eulas_id license_crc32 module_id module_id_already_exists
-        next_eulas_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(EULAS_ID)+1,1) FROM EULAS" )
-        license_crc32=$( unzip -qq -c "${module_sourcepath}" license.html | gzip -c | tail -c8 | od -t u4 -N 4 -A n | cut -c 2- )
-        module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' )
-        module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
-        if [ "${module_id_already_exists}" != "1" ]; then
-            echo "  Accepting License on your behalf as EULAS_ID=${next_eulas_id}"
-            "${SQLITE3[@]}" "INSERT INTO EULAS (EULAS_ID, MODULEID, CRC) VALUES (${next_eulas_id}, '${module_id}', ${license_crc32}); UPDATE SEQUENCES SET val=${next_eulas_id} WHERE name='EULAS_SEQ'"
-        else
-            echo "  License EULA already found in EULAS table, skipping INSERT"
-        fi
-    done
-}
-
 # usage: compare_versions IMAGE_VERSION VOLUME_VERSION
 #   ie: compare_versions "8.0.2" "7.9.11"
 # return values: -3 = unexpected version syntax
@@ -395,7 +259,7 @@ check_for_upgrade() {
     fi
 
     if [ ! -d "${IGNITION_INSTALL_LOCATION}/data/temp" ]; then
-        echo "Creating extra temp folder within data volume"
+        echo "init     | Creating extra temp folder within data volume"
         mkdir -p "${IGNITION_INSTALL_LOCATION}/data/temp"
     fi
 
@@ -415,7 +279,7 @@ check_for_upgrade() {
                 ;;
             1 | 2)
                 # Init file present, upgrade required
-                echo "Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
+                echo "init     | Detected Ignition Volume from prior version (${volume_version:-unknown}), running Upgrader"
                 java -classpath "lib/core/common/common.jar" com.inductiveautomation.ignition.common.upgrader.Upgrader . data logs file=ignition.conf
                 echo "${image_version}" > "${init_file_path}"
                 # Correlate the result of the version check
@@ -430,6 +294,8 @@ check_for_upgrade() {
                 ;;
         esac
     fi
+
+    chown "${IGNITION_UID}:${IGNITION_GID}" "${init_file_path}"
 }
 
 # Collect additional arguments if we're running the gateway
@@ -538,7 +404,7 @@ if [ "$1" = './ignition-gateway' ]; then
               (-d "/jdbc" && ${#jdbc_files[@]} -gt 0) || 
               "${GATEWAY_RESTORE_REQUIRED}" = "1" ]]; then
             # Initialize Startup Gateway before Attempting Restore
-            echo "Ignition initialization process in progress, logged here: /var/log/ignition/provisioning.log"
+            echo "init     | Ignition initialization process in progress, logged here: /var/log/ignition/provisioning.log"
             "${CMD[@]}" > /var/log/ignition/provisioning.log 2>&1 &
             pid="$!"
 
@@ -546,7 +412,7 @@ if [ "$1" = './ignition-gateway' ]; then
 
             # Gateway Restore
             if [ "${GATEWAY_RESTORE_REQUIRED}" = "1" ]; then
-                echo 'Restoring Gateway Backup...'
+                echo 'init     | Restoring Gateway Backup...'
                 printf '\n' | ./gwcmd.sh --restore /restore.gwbk -y
             fi
 
@@ -555,15 +421,66 @@ if [ "$1" = './ignition-gateway' ]; then
     fi
 
     # Link Additional Modules and prepare Ignition database
-    register_modules "${GATEWAY_MODULE_RELINK}" "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+    register-modules.sh "${GATEWAY_MODULE_RELINK}" "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
 
     # Link Additional JDBC Drivers and prepare Ignition database
-    register_jdbc "${GATEWAY_JDBC_RELINK}" "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
+    register-jdbc.sh "${GATEWAY_JDBC_RELINK}" "${IGNITION_INSTALL_LOCATION}/data/db/config.idb"
     
     # Perform module enablement/disablement
     enable_disable_modules "${GATEWAY_MODULES_ENABLED}"
 
-    echo 'Starting Ignition Gateway...'
+    # Stage tini as init replacement
+    set -- tini -g -- "${CMD[@]}"
+
+    # Check for running as root and adjust permissions as needed, then stage dropdown to `ignition` user for gateway launch.
+    if [ "$(id -u)" = "0" ] && [ "${IGNITION_UID}" != "0" ]; then
+        # Obtain ignition UID/GID
+        ignition_uid_current=$(id -u ignition)
+        ignition_gid_current=$(id -g ignition)
+
+        if [[ "${ignition_uid_current}" != "${IGNITION_UID}" ]]; then
+            echo "init     | Adjusting UID of 'ignition' user from ${ignition_uid_current} to ${IGNITION_UID}"
+            usermod -u "${IGNITION_UID}" ignition
+        fi
+        if [[ "${ignition_gid_current}" != "${IGNITION_GID}" ]]; then
+            echo "init     | Adjusting GID of 'ignition' user from ${ignition_gid_current} to ${IGNITION_GID}"
+            groupmod -g "${IGNITION_GID}" ignition
+        fi
+
+        # Ensure permissions of stdout for logging
+        chown ignition:ignition logs/wrapper.log
+
+        # Adjust permissions of base Ignition paths
+        base_ignition_paths=(
+            "/var/lib/ignition"
+            "/var/log/ignition"
+        )
+        readarray -d '' pa_base_ignition_paths < <(find "${base_ignition_paths[@]}" -maxdepth 0 \! \( -user ignition -group ignition \) -print0)
+        if (( ${#pa_base_ignition_paths[@]} > 0 )); then
+            echo "init     | Adjusting permissions of base Ignition paths: ${pa_base_ignition_paths[*]}"
+            chown ignition:ignition "${base_ignition_paths[@]}"
+        fi
+
+        # Adjust permissions of Ignition install files
+        readarray -d '' pa_ignition_files < <(find -L "${IGNITION_INSTALL_LOCATION}" \! \( -user ignition -group ignition \) -a \! -name "wrapper.log" -print0)
+        if (( ${#pa_ignition_files[@]} > 0 )); then
+            echo "init     | Adjusting permissions of ${#pa_ignition_files[@]} Ignition installation files under '${IGNITION_INSTALL_LOCATION}', following symlinks..."
+            # ignore failures with '|| true' here due to potentially broken symlink to metro-keystore (fresh launch)
+            chown -f ignition:ignition "${pa_ignition_files[@]}" || true
+        fi
+
+        # Adjust permissions of symlinks within Ignition install files
+        readarray -d '' pa_ignition_symlinks < <(find "${IGNITION_INSTALL_LOCATION}" "${base_ignition_paths[@]}" -type l \! \( -user ignition -group ignition \) -print0)
+        if (( ${#pa_ignition_symlinks[@]} > 0 )); then
+            echo "init     | Fine-tuning permissions of ${#pa_ignition_symlinks[@]} symlinks under: ${IGNITION_INSTALL_LOCATION} ${base_ignition_paths[*]}"
+            chown -h ignition:ignition "${pa_ignition_symlinks[@]}"
+        fi
+
+        echo "init     | Staging user step-down from 'root' to 'ignition'"
+        set -- gosu ignition "$@"
+    fi
+
+    echo 'init     | Starting Ignition Gateway...'
 fi
 
-exec "${CMD[@]}"
+exec "$@"
