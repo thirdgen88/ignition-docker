@@ -152,8 +152,7 @@ WORKDIR ${IGNITION_INSTALL_LOCATION}
 ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 
 # Copy in Entrypoint and helper scripts
-COPY docker-entrypoint.sh /usr/local/bin/
-COPY accept-gwnetwork.sh /usr/local/bin/
+COPY *.sh /usr/local/bin/
 
 STOPSIGNAL SIGINT
 
