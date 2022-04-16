@@ -9,6 +9,7 @@ jobs:
     uses: thirdgen88/ignition-docker/.github/workflows/multibuild.yml@main
     with:
       image_tag: 7.9
+      platforms: linux/arm,linux/amd64
     secrets:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
