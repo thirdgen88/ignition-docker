@@ -37,11 +37,8 @@ function register_modules() {
         keytool=$(which keytool)
 
         if [ -h "${module_destpath}" ]; then
-            echo "init     | Skipping Linked Module: ${module_basename}"
-            continue
-        fi
-
-        if [ -e "${module_destpath}" ]; then
+            echo "init     | Detected linked module: ${module_basename}"
+        elif [ -e "${module_destpath}" ]; then
             if [ "${RELINK_ENABLED}" != true ]; then
                 echo "init     | Skipping existing module: ${module_basename}"
                 continue
@@ -51,7 +48,7 @@ function register_modules() {
         else
             echo "init     | Linking Module: ${module_basename}"
         fi
-        ln -s "${module_sourcepath}" "${module_destpath}"
+        ln -fs "${module_sourcepath}" "${module_destpath}"
 
         # Populate CERTIFICATES table
         local cert_info subject_name thumbprint next_certificates_id thumbprint_already_exists
@@ -70,17 +67,22 @@ function register_modules() {
         fi
 
         # Populate EULAS table
-        local next_eulas_id license_crc32 module_id module_id_already_exists
+        local next_eulas_id license_crc32 module_id existing_license_crc32
         next_eulas_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(EULAS_ID)+1,1) FROM EULAS" ) 
         license_filename=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<license>).*(?=</license)' )
         license_crc32=$( unzip -qq -c "${module_sourcepath}" "${license_filename}" | gzip -c | tail -c8 | od -t u4 -N 4 -A n | cut -c 2- ) 
         module_id=$( unzip -qq -c "${module_sourcepath}" module.xml | grep -oP '(?<=<id>).*(?=</id)' ) 
-        module_id_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM EULAS WHERE MODULEID='${module_id}' AND CRC=${license_crc32}" )
-        if [ "${module_id_already_exists}" != "1" ]; then
+        existing_license_crc32=$( "${SQLITE3[@]}" "SELECT CRC FROM EULAS WHERE MODULEID='${module_id}'" )
+        if [[ -z "${existing_license_crc32}" ]]; then
             echo "init     |  Accepting License on your behalf as EULAS_ID=${next_eulas_id}"
             "${SQLITE3[@]}" "INSERT INTO EULAS (EULAS_ID, MODULEID, CRC) VALUES (${next_eulas_id}, '${module_id}', ${license_crc32}); UPDATE SEQUENCES SET val=${next_eulas_id} WHERE name='EULAS_SEQ'"
         else
-            echo "init     |  License EULA already found in EULAS table, skipping INSERT"
+            if [[ "${existing_license_crc32}" != "${license_crc32}" ]]; then
+                echo "init     |  License EULA already found in EULAS table, performing UPDATE"
+                "${SQLITE3[@]}" "UPDATE EULAS SET CRC=${license_crc32} WHERE MODULEID='${module_id}'"
+            else
+                echo "init     |  License EULA already found in EULAS table, skipping INSERT"
+            fi
         fi
     done
 }
