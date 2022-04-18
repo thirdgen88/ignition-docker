@@ -722,7 +722,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
     # Stage tini as init replacement
     set -- tini -g -- "${CMD[@]}"
 
-    # Check for running as root and adjust permissions as needed, then stage dropdown to `ignition` user for gateway launch.
+    # Check for running as root and adjust ownership as needed, then stage dropdown to `ignition` user for gateway launch.
     if [ "$(id -u)" = "0" ] && [ "${IGNITION_UID}" != "0" ]; then
         # Obtain ignition UID/GID
         ignition_uid_current=$(id -u ignition)
@@ -737,33 +737,20 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
             groupmod -g "${IGNITION_GID}" ignition
         fi
 
-        # Ensure permissions of stdout for logging
+        # Ensure ownership of stdout for logging
         chown ignition:ignition logs/wrapper.log
 
-        # Adjust permissions of base Ignition paths
-        base_ignition_paths=(
+        # Adjust ownership of Ignition install files
+        ignition_paths=(
+            "${IGNITION_INSTALL_LOCATION}"
             "/var/lib/ignition"
             "/var/log/ignition"
         )
-        readarray -d '' pa_base_ignition_paths < <(find "${base_ignition_paths[@]}" -maxdepth 0 \! \( -user ignition -group ignition \) -print0)
-        if (( ${#pa_base_ignition_paths[@]} > 0 )); then
-            echo "init     | Adjusting permissions of base Ignition paths: ${pa_base_ignition_paths[*]}"
-            chown ignition:ignition "${base_ignition_paths[@]}"
-        fi
-
-        # Adjust permissions of Ignition install files
-        readarray -d '' pa_ignition_files < <(find -L "${IGNITION_INSTALL_LOCATION}" \! \( -user ignition -group ignition \) -a \! -name "wrapper.log" -print0)
+        readarray -d '' pa_ignition_files < <(find "${ignition_paths[@]}" \! \( -user ignition -group ignition \) -print0)
         if (( ${#pa_ignition_files[@]} > 0 )); then
-            echo "init     | Adjusting permissions of ${#pa_ignition_files[@]} Ignition installation files under '${IGNITION_INSTALL_LOCATION}', following symlinks..."
+            echo -n "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files..."
             # ignore failures with '|| true' here due to potentially broken symlink to metro-keystore (fresh launch)
-            chown -f ignition:ignition "${pa_ignition_files[@]}" || true
-        fi
-
-        # Adjust permissions of symlinks within Ignition install files
-        readarray -d '' pa_ignition_symlinks < <(find "${IGNITION_INSTALL_LOCATION}" "${base_ignition_paths[@]}" -type l \! \( -user ignition -group ignition \) -print0)
-        if (( ${#pa_ignition_symlinks[@]} > 0 )); then
-            echo "init     | Fine-tuning permissions of ${#pa_ignition_symlinks[@]} symlinks under: ${IGNITION_INSTALL_LOCATION} ${base_ignition_paths[*]}"
-            chown -h ignition:ignition "${pa_ignition_symlinks[@]}"
+            chown -h -f ignition:ignition "${pa_ignition_files[@]}" || true
         fi
 
         echo "init     | Staging user step-down from 'root' to 'ignition'"
