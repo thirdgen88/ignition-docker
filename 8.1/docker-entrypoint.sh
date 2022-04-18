@@ -748,7 +748,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         )
         readarray -d '' pa_ignition_files < <(find "${ignition_paths[@]}" \! \( -user ignition -group ignition \) -print0)
         if (( ${#pa_ignition_files[@]} > 0 )); then
-            echo -n "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files..."
+            echo "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files..."
             # ignore failures with '|| true' here due to potentially broken symlink to metro-keystore (fresh launch)
             chown -h -f ignition:ignition "${pa_ignition_files[@]}" || true
         fi
