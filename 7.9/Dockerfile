@@ -1,5 +1,5 @@
 # Ignition Version
-ARG IGNITION_VERSION="7.9.20"
+ARG IGNITION_VERSION="7.9.21"
 
 FROM ubuntu:22.04 AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
@@ -9,16 +9,16 @@ ARG IGNITION_VERSION
 RUN apt-get update && apt-get install -y wget unzip
 
 # Ignition Downloader Parameters
-ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.20/20220512-1016/zip-installers/Ignition-linux-64-7.9.20.zip"
-ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="d5d55019ae84dea956c2b99603642e2e16834cc7bdaa0ac3f55bc0ae0d83b194"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.20/20220512-1016/zip-installers/Ignition-linux-64-7.9.20.zip"
-ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="d5d55019ae84dea956c2b99603642e2e16834cc7bdaa0ac3f55bc0ae0d83b194"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.21/20220726-1323/zip-installers/Ignition-linux-64-7.9.21.zip"
+ARG IGNITION_FULL_AMD64_DOWNLOAD_SHA256="d6ff70b1dbda434d1ec8f3627664240de874b4a39586e9ab01762f9ed096774b"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.21/20220726-1323/zip-installers/Ignition-linux-64-7.9.21.zip"
+ARG IGNITION_EDGE_AMD64_DOWNLOAD_SHA256="d6ff70b1dbda434d1ec8f3627664240de874b4a39586e9ab01762f9ed096774b"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.20/20220512-1016/zip-installers/Ignition-linux-armhf-7.9.20.zip"
-ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="aa8cfd764b039a888bba044f720aba8857f5f686b71ffeb677b43bdf59e42eb3"
-ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.20/20220512-1016/zip-installers/Ignition-Edge-linux-armhf-7.9.20.zip"
-ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="c828d8c0a3a2e8c572caa2791ba55f9a4acad02f6f738a8a77550b6c5ee6dc6d"
+ARG IGNITION_FULL_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.21/20220726-1323/zip-installers/Ignition-linux-armhf-7.9.21.zip"
+ARG IGNITION_FULL_ARMHF_DOWNLOAD_SHA256="bdcb18cdb95e3d4e9326ca12212fa8524746b6a8e6c2186a0d01a6f6625e8378"
+ARG IGNITION_EDGE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/build7.9.21/20220726-1323/zip-installers/Ignition-Edge-linux-armhf-7.9.21.zip"
+ARG IGNITION_EDGE_ARMHF_DOWNLOAD_SHA256="2e639598adc8aeb604a587cf3170a1760b9901026d3ab2beaa17e1972296e0f0"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 
 # gosu Download Parameters
