@@ -1,14 +1,8 @@
-# Ignition Version
-ARG IGNITION_VERSION="8.1.19"
-# IGNITION_RC_VERSION should be something like `8.1.8-rc1` when applicable, otherwise blank
-ARG IGNITION_RC_VERSION=""
-
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
 
 FROM ubuntu:20.04 AS downloader
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
-ARG IGNITION_VERSION
 ARG BUILD_EDITION
 
 # Install some prerequisite packages
@@ -131,7 +125,6 @@ RUN set -exo pipefail; \
 # RUNTIME IMAGE
 FROM ubuntu:20.04 as final
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
-ARG IGNITION_VERSION
 ARG BUILD_EDITION
 
 # Capture BUILD_EDITION into environment variable

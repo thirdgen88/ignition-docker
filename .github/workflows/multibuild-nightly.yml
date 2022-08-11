@@ -7,8 +7,7 @@ jobs:
   call-multibuild:
     uses: thirdgen88/ignition-docker/.github/workflows/multibuild.yml@main
     with:
-      image_tag: nightly
-      platforms: linux/amd64,linux/arm64
+      build_target: nightly
     secrets:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
