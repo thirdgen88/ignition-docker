@@ -1,9 +1,5 @@
-# Ignition Version
-ARG IGNITION_VERSION="7.9.20"
-
 FROM ubuntu:22.04 AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
-ARG IGNITION_VERSION
 
 # Install some prerequisite packages
 RUN apt-get update && apt-get install -y wget unzip
@@ -106,7 +102,6 @@ RUN set -exo pipefail; \
 # RUNTIME IMAGE
 FROM eclipse-temurin:8-jre-focal as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
-ARG IGNITION_VERSION
 
 # Install some prerequisite packages
 RUN apt-get update && \
