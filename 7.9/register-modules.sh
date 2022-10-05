@@ -58,7 +58,7 @@ function register_modules() {
         cert_info=$( unzip -qq -c "${module_sourcepath}" certificates.p7b | $keytool -printcert -v | head -n 9 ) 
         thumbprint=$( echo "${cert_info}" | grep -A 2 "Certificate fingerprints" | grep SHA1 | cut -d : -f 2- | sed -e 's/\://g' | awk '{$1=$1;print tolower($0)}' ) 
         echo "init     |  Thumbprint: ${thumbprint}"
-        subject_name=$( echo "${cert_info}" | grep -A 1 "Certificate\[1\]:" | grep -Po '^Owner: CN="?\K(.+?)(?="?, (OU?|L|ST|C))' | sed -e 's/"//g' )
+        subject_name=$( echo "${cert_info}" | grep -m 1 -Po '^Owner: CN="?\K(.+?)(?="?, (OU?|L|ST|C))' | sed -e 's/"//g' )
         echo "init     |  Subject Name: ${subject_name}"
         next_certificates_id=$( "${SQLITE3[@]}" "SELECT COALESCE(MAX(CERTIFICATES_ID)+1,1) FROM CERTIFICATES" ) 
         thumbprint_already_exists=$( "${SQLITE3[@]}" "SELECT 1 FROM CERTIFICATES WHERE lower(hex(THUMBPRINT)) = '${thumbprint}'" )
