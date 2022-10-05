@@ -24,6 +24,8 @@ Ignition is a SCADA software platform made by [Inductive Automation](http://indu
 
 For more information on Inductive Automation and the Ignition Platform, please visit [www.inductiveautomation.com](https://www.inductiveautomation.com).
 
+**NOTE:** This is the "community" image.  For the "official" Ignition image that is maintained by Inductive Automation directly, see their [Docker Hub page](https://hub.docker.com/r/inductiveautomation/ignition) and referenced links there for more information.
+
 ## How to use this image
 
 The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  If you wish to explore other deployment scenarios, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo for multi-container Docker Compose examples.
