@@ -24,6 +24,8 @@ Ignition is a SCADA software platform made by [Inductive Automation](http://indu
 
 For more information on Inductive Automation and the Ignition Platform, please visit [www.inductiveautomation.com](https://www.inductiveautomation.com).
 
+**NOTE:** This is the "community" image.  For the "official" Ignition image that is maintained by Inductive Automation directly, see their [Docker Hub page](https://hub.docker.com/r/inductiveautomation/ignition) and referenced links there for more information.
+
 ## How to use this image
 
 The normal Ignition installation process is extremely quick and painless.  This repository explores how to deploy Ignition under Docker, which aims to really accelerate and expand development efforts.  If you wish to explore other deployment scenarios, take a look at the [ignition-examples](https://github.com/thirdgen88/ignition-examples) repo for multi-container Docker Compose examples.
@@ -38,7 +40,7 @@ You can start an instance of Ignition in its own container as below:
 
 ## Start an `Ignition Edge` gateway instance
 
-_New/Updated with Ignition 8.0.14 as of 2020-06-24_
+_New/Updated with 8.0.14 image!_
 
 If you want to run the Ignition Edge variant, simply supply `IGNITION_EDITION=edge` as an environment variable against the same image:
 
@@ -89,7 +91,7 @@ For examples and guidance on using the Ignition Docker Image alongside other ser
 
 ## Container Customization
 
-_New with 7.9.10 Docker image as of 2018-12-29!_
+_New with 7.9.10 image as of 2018-12-29!_
 _Check tables for required versions for 8.0 and 8.1 images!_
 
 There are additional ways to customize the configuration of the Ignition container via environment variables.  
@@ -213,7 +215,7 @@ Note: This mode also works with the short bind-mount syntax: `-v /path/to/gw/dat
 
 ## How to enable/disable default modules
 
-_New with latest 7.9.14 and 8.0.13 images as of 2020-06-12!_
+_New with 7.9.14 and 8.0.13 images!_
 
 _Table 4_ above mentions the environment variable `GATEWAY_MODULES_ENABLED`, that can be used to specify default Ignition modules that will enabled at Gateway startup.  If you override the default value of `all`, any other modules other than the ones you specify will be moved to a `modules-disabled` folder in the container and ignored on Gateway startup.  See the table below for the correlations between module designations that you can supply and the default module filenames that will be matched (and thusly remain enabled):
 
@@ -256,7 +258,7 @@ Combine this and the guidance below regarding third-party modules to declare a t
 
 ## How to integrate third party modules
 
-_New with latest 7.9.11 and 8.0.2 images as of 2019-06-15!_
+_New with 7.9.11 and 8.0.2 images!_
 
 To add external or third-party modules to your gateway, place your modules in a folder on the Docker host, and bind-mount the folder into `/modules` within the container.  Modules will be linked from here into the active location at `/var/lib/ignition/user-lib/modules`.  Additionally, module certificates and licenses will be automatically accepted within the Gateway so that they start up automatically with no additional user intervention required.
 
@@ -277,8 +279,8 @@ If you wish to overwrite a built-in module with one from the bind-mount path, de
 
 ## How to integrate third party JDBC drivers
 
-_New with latest 7.9.13 and 8.0.7 images as of 2020-01-25!_
-_Updated and improved with 8.1.9 as of 2021-09-05!_
+_New with 7.9.13 and 8.0.7 images!_
+_Updated and improved with 8.1.9!_
 
 To automatically link any associated third-party JDBC driver `*.jar` files, place them in a folder on the Docker host, and bind-mount the folder into `/jdbc` within the container.  The `JDBCDRIVERS` table within the gateway configuration database will be searched for Java Class Names that have a match within one of the available `*.jar` files under `/jdbc`.  When matched, the driver will be linked from there into the active location at `/var/lib/ignition/user-lib/jdbc`.  Finally, the `JDBCDRIVERS` table records will be updated with the name of the associated `.jar` file.
 
@@ -302,7 +304,7 @@ As of 8.1.9, the container will now launch as root and allow for customizing the
 
 ## Upgrading a volume-persisted Ignition Container
 
-_New with latest 7.9.11 and 8.0.2 images as of 2019-06-28!_
+_New with 7.9.11 and 8.0.2 images!_
 
 Upgrading Ignition versions is now supported!  If you have your container bound with a named volume to `/var/lib/ignition/data` (as described above), upgrading to a newer container is now just a matter of stopping/removing the existing container, and starting a new container against a newer image.  Just make sure to connect the same volume to the new container and the entrypoint script will handle running the upgrader and conduct any additional provisioning actions automatically.
 
