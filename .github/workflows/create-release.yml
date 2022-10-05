@@ -15,3 +15,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body: Docker Image Build for kcollins/ignition:${{ github.ref_name }}
+          generate_release_notes: true
