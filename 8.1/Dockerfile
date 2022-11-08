@@ -6,7 +6,7 @@ LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG BUILD_EDITION
 
 # Install some prerequisite packages
-RUN apt-get update && apt-get install -y wget unzip
+RUN apt-get update && apt-get install -y wget unzip xmlstarlet
 
 # Ignition Downloader Parameters
 ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.22/20221101-1006/Ignition-linux-x86-64-8.1.22.zip"
@@ -121,6 +121,15 @@ RUN set -exo pipefail; \
         echo "Architecture ${dpkg_arch} JRE suffix target not defined, aborting build"; \
         exit 1; \
     fi
+
+# Modify base logback configuration to be colorized by default
+RUN xmlstarlet ed --inplace \
+    -d "/configuration/@debug" \
+    -u "/configuration/appender[@name='SysoutAppender']/encoder/pattern" \
+        -v "%highlight(%.-1p) %boldCyan([%-30c{1}]:) %m %X%n" \
+    -s "/configuration/appender[@name='SysoutAppender']" \
+        -t elem -n withJansi -v "true" \
+    data/logback.xml
 
 # RUNTIME IMAGE
 FROM ubuntu:20.04 as final
