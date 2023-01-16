@@ -1,7 +1,7 @@
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
 
-FROM ubuntu:20.04 AS downloader
+FROM ubuntu:22.04 AS downloader
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG BUILD_EDITION
 
@@ -9,37 +9,28 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip xmlstarlet
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.22/20221101-1006/Ignition-linux-x86-64-8.1.22.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="327fee6568ac46c0f4bf513b209113ae0d299bea074c0f621dcc5ff241243f4b"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.23/20221213-0907/Ignition-linux-x86-64-8.1.23.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="6c05a5d1617f5efd583297120874b36ee356bccbd830cc4da54fc9bf8b7996c3"
 ARG IGNITION_RC_AMD64_DOWNLOAD_URL=""
 ARG IGNITION_RC_AMD64_DOWNLOAD_SHA256=""
-ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.23-SNAPSHOT/Ignition-linux-64-8.1.23-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.25-SNAPSHOT/Ignition-linux-64-8.1.25-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_AMD64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.22/20221101-1006/Ignition-linux-armhf-32-8.1.22.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="2b6efaa89bac93022c323e2520acbb444f3157b65e3e436a88d393e131bdad3e"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.23/20221213-0907/Ignition-linux-armhf-32-8.1.23.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="0570831aa5ccbbc50f8f4d00842fcfb016185b2988b3936bf89d06fe20816500"
 ARG IGNITION_RC_ARMHF_DOWNLOAD_URL=""
 ARG IGNITION_RC_ARMHF_DOWNLOAD_SHA256=""
-ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.23-SNAPSHOT/Ignition-linux-armhf-8.1.23-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.25-SNAPSHOT/Ignition-linux-armhf-8.1.25-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARMHF_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.22/20221101-1006/Ignition-linux-aarch-64-8.1.22.zip"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="7dd618255fa64f2d3a57cdea3cbe4cca2f674f43bf58e336da6f509fa12846c4"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.23/20221213-0907/Ignition-linux-aarch-64-8.1.23.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="5e10774527f9d8fba93161c4102529c4402c2ed06f71ad79fb6667cf7d32fc66"
 ARG IGNITION_RC_ARM64_DOWNLOAD_URL=""
 ARG IGNITION_RC_ARM64_DOWNLOAD_SHA256=""
-ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.23-SNAPSHOT/Ignition-linux-aarch64-8.1.23-SNAPSHOT.zip"
+ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/builds/nightly/8.1.25-SNAPSHOT/Ignition-linux-aarch64-8.1.25-SNAPSHOT.zip"
 ARG IGNITION_NIGHTLY_ARM64_DOWNLOAD_SHA256="notused"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
-
-# gosu Download Parameters
-ARG GOSU_VERSION="1.14"
-ARG GOSU_AMD64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-amd64"
-ARG GOSU_AMD64_DOWNLOAD_SHA256="bd8be776e97ec2b911190a82d9ab3fa6c013ae6d3121eea3d0bfd5c82a0eaf8c"
-ARG GOSU_ARMHF_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-armhf"
-ARG GOSU_ARMHF_DOWNLOAD_SHA256="abb1489357358b443789571d52b5410258ddaca525ee7ac3ba0dd91d34484589"
-ARG GOSU_ARM64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-arm64"
-ARG GOSU_ARM64_DOWNLOAD_SHA256="73244a858f5514a927a0f2510d533b4b57169b64d2aa3f9d98d92a7a7df80cea"
 
 # Retrieve Ignition Installer and Perform Ignition Installation
 ENV INSTALLER_PATH /root
@@ -61,6 +52,15 @@ RUN set -exo pipefail; \
         echo "Architecture ${dpkg_arch} download targets for Ignition not defined, aborting build"; \
         exit 1; \
     fi
+
+# gosu Download Parameters
+ARG GOSU_VERSION="1.16"
+ARG GOSU_AMD64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-amd64"
+ARG GOSU_AMD64_DOWNLOAD_SHA256="3a4e1fc7430f9e7dd7b0cbbe0bfde26bf4a250702e84cf48a1eb2b631c64cf13"
+ARG GOSU_ARMHF_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-armhf"
+ARG GOSU_ARMHF_DOWNLOAD_SHA256="1b670d5426e1ddbb14a14280afb6850a48c219189d4cfe7e6eb2cc08a4fc7785"
+ARG GOSU_ARM64_DOWNLOAD_URL="https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-arm64"
+ARG GOSU_ARM64_DOWNLOAD_SHA256="23fa49907d5246d2e257de3bf883f57fba47fe1f559f7e732ff16c0f23d2b6a6"
 
 # Download gosu based on Detected Architecture
 RUN set -exo pipefail; \
@@ -132,7 +132,7 @@ RUN xmlstarlet ed --inplace \
     data/logback.xml
 
 # RUNTIME IMAGE
-FROM ubuntu:20.04 as final
+FROM ubuntu:22.04 as final
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG BUILD_EDITION
 
@@ -189,7 +189,12 @@ WORKDIR ${IGNITION_INSTALL_LOCATION}
 ENV PATH="${IGNITION_INSTALL_LOCATION}/lib/runtime/jre/bin:${PATH}"
 
 # Copy in Entrypoint and helper scripts
-COPY *.sh /usr/local/bin/
+COPY --chmod=0755 accept-gwnetwork.sh \
+    docker-entrypoint.sh \
+    perform-commissioning.sh \
+    register-jdbc.sh \
+    register-modules.sh \
+    /usr/local/bin/
 
 STOPSIGNAL SIGINT
 
