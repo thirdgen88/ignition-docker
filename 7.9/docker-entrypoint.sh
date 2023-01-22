@@ -438,17 +438,17 @@ if [ "$1" = './ignition-gateway' ]; then
         ignition_uid_current=$(id -u ignition)
         ignition_gid_current=$(id -g ignition)
 
-        if [[ "${ignition_uid_current}" != "${IGNITION_UID}" ]]; then
+        if [[ "${ignition_uid_current}" != "${IGNITION_UID}" ]] && ! getent passwd "${IGNITION_UID}" > /dev/null; then
             echo "init     | Adjusting UID of 'ignition' user from ${ignition_uid_current} to ${IGNITION_UID}"
             usermod -u "${IGNITION_UID}" ignition
         fi
-        if [[ "${ignition_gid_current}" != "${IGNITION_GID}" ]]; then
+        if [[ "${ignition_gid_current}" != "${IGNITION_GID}" ]] && ! getent group "${IGNITION_GID}" > /dev/null; then
             echo "init     | Adjusting GID of 'ignition' user from ${ignition_gid_current} to ${IGNITION_GID}"
             groupmod -g "${IGNITION_GID}" ignition
         fi
 
         # Ensure ownership of stdout for logging
-        chown ignition:ignition logs/wrapper.log
+        chown "${IGNITION_UID}:${IGNITION_GID}" logs/wrapper.log
 
         # Adjust ownership of Ignition install files
         ignition_paths=(
@@ -456,15 +456,15 @@ if [ "$1" = './ignition-gateway' ]; then
             "/var/lib/ignition"
             "/var/log/ignition"
         )
-        readarray -d '' pa_ignition_files < <(find "${ignition_paths[@]}" \! \( -user ignition -group ignition \) -print0)
+        readarray -d '' pa_ignition_files < <(find "${ignition_paths[@]}" \! \( -user "${IGNITION_UID}" -group "${IGNITION_GID}" \) -print0)
         if (( ${#pa_ignition_files[@]} > 0 )); then
-            echo "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files under '${IGNITION_INSTALL_LOCATION}'."
+            echo "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files..."
             # ignore failures with '|| true' here due to potentially broken symlink to metro-keystore (fresh launch)
-            chown -h -f ignition:ignition "${pa_ignition_files[@]}" || true
+            chown -h -f "${IGNITION_UID}:${IGNITION_GID}" "${pa_ignition_files[@]}" || true
         fi
 
-        echo "init     | Staging user step-down from 'root' to 'ignition'"
-        set -- gosu ignition "$@"
+        echo "init     | Staging user step-down from 'root'"
+        set -- gosu "${IGNITION_UID}:${IGNITION_GID}" "$@"
     fi
 
     echo 'init     | Starting Ignition Gateway...'
