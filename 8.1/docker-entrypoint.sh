@@ -498,7 +498,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         fi
     fi
 
-    if [[ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-${GATEWAY_INIT_MEMORY}} ]]; then
+    if [[ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-${GATEWAY_INIT_MEMORY:-256}} ]]; then
         echo >&2 "init     | Invalid memory specification, min (${GATEWAY_INIT_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
         exit 1
     fi
