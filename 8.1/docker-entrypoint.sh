@@ -484,7 +484,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         else
             echo >&2 "init     | Invalid minimum memory specification, must be integer in MB >= 256: ${GATEWAY_INIT_MEMORY}"
             exit 1
-        fi    
+        fi
     fi
 
     if [ -n "${GATEWAY_MAX_MEMORY:-}" ]; then
@@ -498,7 +498,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         fi
     fi
 
-    if [[ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-512} ]]; then
+    if [[ ${GATEWAY_INIT_MEMORY:-256} -gt ${GATEWAY_MAX_MEMORY:-${GATEWAY_INIT_MEMORY}} ]]; then
         echo >&2 "init     | Invalid memory specification, min (${GATEWAY_INIT_MEMORY}) must be less than max (${GATEWAY_MAX_MEMORY})"
         exit 1
     fi
