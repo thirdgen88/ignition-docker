@@ -33,6 +33,9 @@ target "7_9-base" {
 
 target "8_1-base" {
     context = "8.1"
+    contexts = {
+        ubuntu-base = "docker-image://ubuntu:23.04"
+    }
     platforms = [
         "linux/amd64", 
         "linux/arm64", 
