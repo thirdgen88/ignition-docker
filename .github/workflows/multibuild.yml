@@ -45,3 +45,6 @@ jobs:
           files: ./docker-bake.hcl
           targets: ${{ inputs.build_target }}
           push: ${{ github.event_name != 'pull_request' }}
+          set: |
+            *.attest=type=provenance,mode=min
+            *.attest=type=sbom
