@@ -1,7 +1,7 @@
 # Default Build Edition - STABLE or NIGHTLY
 ARG BUILD_EDITION="STABLE"
 
-FROM ubuntu:22.04 AS downloader
+FROM ubuntu-base AS downloader
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG BUILD_EDITION
 
@@ -132,7 +132,7 @@ RUN xmlstarlet ed --inplace \
     data/logback.xml
 
 # RUNTIME IMAGE
-FROM ubuntu:22.04 as final
+FROM ubuntu-base as final
 LABEL maintainer="Kevin Collins <kcollins@purelinux.net>"
 ARG BUILD_EDITION
 
