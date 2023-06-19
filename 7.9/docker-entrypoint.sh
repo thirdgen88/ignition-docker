@@ -458,9 +458,16 @@ if [ "$1" = './ignition-gateway' ]; then
         )
         readarray -d '' pa_ignition_files < <(find "${ignition_paths[@]}" \! \( -user "${IGNITION_UID}" -group "${IGNITION_GID}" \) -print0)
         if (( ${#pa_ignition_files[@]} > 0 )); then
-            echo "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files..."
-            # ignore failures with '|| true' here due to potentially broken symlink to metro-keystore (fresh launch)
-            chown -h -f "${IGNITION_UID}:${IGNITION_GID}" "${pa_ignition_files[@]}" || true
+            batch_size=500
+            echo "init     | Adjusting ownership of ${#pa_ignition_files[@]} Ignition installation files (batch size ${batch_size})..."
+            looper=0
+            pa_ignition_files_batch=( "${pa_ignition_files[@]:$looper:$batch_size}" )
+            while (( ${#pa_ignition_files_batch[@]} > 0 )); do
+                # ignore failures with '|| true' here due to potentially broken symlink to metro-keystore (fresh launch)
+                chown -h -f "${IGNITION_UID}:${IGNITION_GID}" "${pa_ignition_files_batch[@]}" || true
+                looper=$((looper+batch_size))
+                pa_ignition_files_batch=( "${pa_ignition_files[@]:$looper:$batch_size}" )
+            done
         fi
 
         echo "init     | Staging user step-down from 'root'"
