@@ -25,6 +25,9 @@ variable "IGNITION_VERSION_81_RC" {
 # Ignition Base Build Targets
 target "7_9-base" {
     context = "7.9"
+    contexts = {
+        jre-base = "docker-image://eclipse-temurin:8-jre-jammy"
+    }
     platforms = [
         "linux/amd64",
         "linux/arm",
