@@ -100,7 +100,7 @@ RUN set -exo pipefail; \
     fi
 
 # RUNTIME IMAGE
-FROM eclipse-temurin:8-jre-jammy as final
+FROM jre-base as final
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages
