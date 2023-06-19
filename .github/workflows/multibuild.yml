@@ -47,5 +47,3 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           set: |
             *.attest=type=sbom
-            *.cache-to=type=gha
-            *.cache-from=type=gha
