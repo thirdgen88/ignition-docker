@@ -5,10 +5,15 @@ on:
       - 'release/8.1.*'
 
 jobs:
-  call-multibuild:
+  multibuild_matrix:
+    strategy:
+      matrix:
+        build_target:
+          - 8_1-full
+          - 8_1-slim
     uses: thirdgen88/ignition-docker/.github/workflows/multibuild.yml@main
     with:
-      build_target: 8_1
+      build_target: ${{ matrix.build_target }}
     secrets:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
