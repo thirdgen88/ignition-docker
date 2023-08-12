@@ -1,7 +1,7 @@
 ## Supported tags and respective `Dockerfile` links
 
-* [`8.1.28`, `8.1`, `latest`, ~~`nightly`~~  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/8.1/Dockerfile)
-* [`8.1.28-slim`, `8.1-slim`, `latest-slim`, `nightly-slim`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/8.1/Dockerfile)
+* [`8.1.30`, `8.1`, `latest`, ~~`nightly`~~  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/8.1/Dockerfile)
+* [`8.1.30-slim`, `8.1-slim`, `latest-slim`, `nightly-slim`  (8.1/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/8.1/Dockerfile)
 * [`7.9.21`, `7.9`, `7.9.21-edge`, `7.9-edge` (7.9/Dockerfile)](https://github.com/thirdgen88/ignition-docker/blob/main/7.9/Dockerfile)
 
 ## Quick Reference
