@@ -134,7 +134,7 @@ enable_disable_modules() {
             # Reset MODULES_ENABLED based on supported modules for Maker Edition, necessary
             # when restoring from backup, where the native edition selection commissioning doesn't
             # handle purging the modules from the base install automatically.
-            MODULES_ENABLED="alarm-notification,allen-bradley-drivers,logix-driver,modbus-driver-v2,omron-driver,opc-ua,perspective,reporting,serial-support-gateway,sfc,siemens-drivers,sql-bridge,tag-historian,udp-tcp-drivers,user-manual,web-developer"
+            MODULES_ENABLED="alarm-notification,allen-bradley-drivers,logix-driver,mitsubishi-driver,modbus-driver-v2,omron-driver,opc-ua,perspective,reporting,serial-support-gateway,sfc,siemens-drivers,sql-bridge,tag-historian,udp-tcp-drivers,user-manual,web-developer"
         else
             return 0
         fi
@@ -149,7 +149,9 @@ enable_disable_modules() {
         ["BACnet Driver-module.modl"]="bacnet-driver"
         ["DNP3-Driver.modl"]="dnp3-driver"
         ["Enterprise Administration-module.modl"]="enterprise-administration"
+        ["IEC 61850 Driver-module.modl"]="iec-61850-driver"
         ["Logix Driver-module.modl"]="logix-driver"
+        ["Mitsubishi-Driver.modl"]="mitsubishi-driver"
         ["Mobile-module.modl"]="mobile-module"
         ["Modbus Driver v2-module.modl"]="modbus-driver-v2"
         ["Omron-Driver.modl"]="omron-driver"
