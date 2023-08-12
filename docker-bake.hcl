@@ -15,7 +15,7 @@ variable "IGNITION_VERSION_79" {
 }
 
 variable "IGNITION_VERSION_81" {
-    default = "8.1.28"
+    default = "8.1.30"
 }
 
 variable "IGNITION_VERSION_81_RC" {
