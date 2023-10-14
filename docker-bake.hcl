@@ -15,11 +15,7 @@ variable "IGNITION_VERSION_79" {
 }
 
 variable "IGNITION_VERSION_81" {
-    default = "8.1.31"
-}
-
-variable "IGNITION_VERSION_81_RC" {
-    default = ""
+    default = "8.1.32"
 }
 
 # Ignition Base Build Targets
@@ -37,7 +33,7 @@ target "7_9-base" {
 target "8_1-base" {
     context = "8.1"
     contexts = {
-        ubuntu-base = "docker-image://ubuntu:23.04"
+        ubuntu-base = "docker-image://ubuntu:23.10"
     }
     platforms = [
         "linux/amd64", 
