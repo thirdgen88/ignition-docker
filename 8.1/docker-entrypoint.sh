@@ -721,6 +721,9 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         fi
     fi
     
+    # Disable jansi in logback if set, breaks in 8.1.38
+    sed -i 's|<withJansi>true</withJansi>|<withJansi>false</withJansi>|' "${IGNITION_INSTALL_LOCATION}/data/logback.xml"
+
     # Stage tini as init replacement
     set -- tini -g -- "${CMD[@]}"
 
