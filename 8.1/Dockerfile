@@ -9,16 +9,16 @@ ARG BUILD_EDITION
 RUN apt-get update && apt-get install -y wget unzip xmlstarlet
 
 # Ignition Downloader Parameters
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.38/20240305-1347/Ignition-linux-x86-64-8.1.38.zip"
-ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="d41bed10b5506a5aa50320d016b183299cfcd050735894f3d66ba005d17811ce"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.39/20240409-1059/Ignition-linux-x86-64-8.1.39.zip"
+ARG IGNITION_STABLE_AMD64_DOWNLOAD_SHA256="d975c083fed3b309478070f31f53e703d7f15c73fccd3baeee5a87c54af25840"
 ARG IGNITION_AMD64_JRE_SUFFIX="nix"
 
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.38/20240305-1347/Ignition-linux-armhf-32-8.1.38.zip"
-ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="81b5a31211026dcdd76157eee05121a6669bc9a59db484d51f8859f340f40517"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.39/20240409-1059/Ignition-linux-armhf-32-8.1.39.zip"
+ARG IGNITION_STABLE_ARMHF_DOWNLOAD_SHA256="314ae94958b59788574236d6d89bafb3d9def3dc313ec7b01925da88149c7d21"
 ARG IGNITION_ARMHF_JRE_SUFFIX="arm32hf"
 
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.38/20240305-1347/Ignition-linux-aarch-64-8.1.38.zip"
-ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="861f4f13cec41572ac0c5d67b965b7217f2500af75325911649c271d9ec42401"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_URL="https://files.inductiveautomation.com/release/ia/8.1.39/20240409-1059/Ignition-linux-aarch-64-8.1.39.zip"
+ARG IGNITION_STABLE_ARM64_DOWNLOAD_SHA256="bcca8a32629add91de85de7e3f19d69e0f8a267ac631e7a90bb6e8f8d599671e"
 ARG IGNITION_ARM64_JRE_SUFFIX="aarch64"
 
 # Retrieve Ignition Installer and Perform Ignition Installation
