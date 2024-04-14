@@ -151,6 +151,7 @@ enable_disable_modules() {
         ["Enterprise Administration-module.modl"]="enterprise-administration"
         ["IEC 61850 Driver-module.modl"]="iec-61850-driver"
         ["Logix Driver-module.modl"]="logix-driver"
+        ["Micro800 Driver-module.modl"]="micro800-driver"
         ["Mitsubishi-Driver.modl"]="mitsubishi-driver"
         ["Mobile-module.modl"]="mobile-module"
         ["Modbus Driver v2-module.modl"]="modbus-driver-v2"
