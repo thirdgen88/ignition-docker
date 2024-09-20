@@ -198,7 +198,7 @@ enable_disable_modules() {
         fi
         
         # Search for Module Definition in List of Modules Enabled
-        module_found=0
+        local -i module_found=0
         for (( n=0; n<${#modules_enabled[@]}; n++ )); do
             if [ "${module_definition}" = "${modules_enabled[$n]}" ]; then
                 module_found+=1
@@ -633,7 +633,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
             looper=GATEWAY_NETWORK_${i:=0}_HOST
             while [ -n "${!looper:-}" ]; do
                 # Add all available env parameters for this host to the init file
-                add_gw_to_init $i
+                add_gw_to_init "$i"
                 # Index to the next HOST variable
                 looper=GATEWAY_NETWORK_$((++i))_HOST
             done
@@ -691,7 +691,7 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         disable_quickstart "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
         register-modules.sh "${GATEWAY_MODULE_RELINK}" "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
         register-jdbc.sh "${GATEWAY_JDBC_RELINK}" "${IGNITION_INSTALL_LOCATION}/temp/db_backup_sqlite.idb"
-        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [[ ${ZIP_EXIT_CODE:=$?} == 12 ]]; then echo "init     | No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "init     | Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit ${ZIP_EXIT_CODE}; fi
+        zip -q -f "${restore_file_path}" db_backup_sqlite.idb || if [[ ${ZIP_EXIT_CODE:=$?} == 12 ]]; then echo "init     | No changes to internal database needed for linked modules, jdbc drivers, or quickstart disable."; else echo "init     | Unknown error (${ZIP_EXIT_CODE}) encountered during re-packaging of config db, exiting." && exit "${ZIP_EXIT_CODE}"; fi
         popd > /dev/null 2>&1
 
         # Perform environmental fixes to restored ignition.conf (seems to default to jre-nix even if on aarch64)
