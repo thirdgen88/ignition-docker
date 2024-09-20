@@ -117,7 +117,7 @@ RUN xmlstarlet ed --inplace \
     -u "/configuration/appender[@name='SysoutAppender']/encoder/pattern" \
         -v "%highlight(%.-1p) %boldCyan([%-30c{1}]:) %m %X%n" \
     -s "/configuration/appender[@name='SysoutAppender']" \
-        -t elem -n withJansi -v "true" \
+        -t elem -n withJansi -v "false" \
     data/logback.xml
 
 # RUNTIME IMAGE
