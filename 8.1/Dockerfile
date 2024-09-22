@@ -100,11 +100,12 @@ RUN mkdir -p /var/lib/ignition && \
     ln -s /var/lib/ignition/data/local/metro-keystore webserver/metro-keystore
 
 # Extract embedded Java based on architecture
+ARG SKIP_JRE_EXTRACT="false"
 RUN set -exo pipefail; \
     dpkg_arch="$(dpkg --print-architecture | awk '{print toupper($0)}')"; \
     jre_suffix_env="IGNITION_${dpkg_arch}_JRE_SUFFIX"; \
     if [ -n "${!jre_suffix_env}" ]; then \
-        ./ignition.sh checkRuntimes && \
+        ([ "${SKIP_JRE_EXTRACT}" == "true" ] || ./ignition.sh checkRuntimes ) && \
         ln -s jre-${!jre_suffix_env} lib/runtime/jre; \
     else \
         echo "Architecture ${dpkg_arch} JRE suffix target not defined, aborting build"; \

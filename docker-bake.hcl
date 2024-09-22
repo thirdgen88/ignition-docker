@@ -103,6 +103,7 @@ target "8_1-slim" {
     args = {
         ZIP_EXCLUSION_RESOURCE_LIST = "designerlauncher,perspectiveworkstation,visionclientlauncher"
         ZIP_EXCLUSION_ARCHITECTURE_LIST = "mac,linux64,win64"
+        SKIP_JRE_EXTRACT = "true"
     }
     cache-to = ["type=registry,ref=${BASE_IMAGE_NAME}:cache-${IGNITION_VERSION_81}-slim"]
     cache-from = ["type=registry,ref=${BASE_IMAGE_NAME}:cache-${IGNITION_VERSION_81}-slim"]
