@@ -572,6 +572,12 @@ if [[ "$1" != 'bash' && "$1" != 'sh' && "$1" != '/bin/sh' ]]; then
         "${APP_OPTIONS[@]}"
     )
 
+    # Extract the JRE if `java` command not present on path
+    if ! command -v java > /dev/null; then
+        echo "init     | Checking Ignition Runtimes..."
+        ./ignition.sh checkRuntimes
+    fi
+
     # Check for Upgrade and Mark Initialization File
     check_for_upgrade "${DATA_VOLUME_LOCATION}/.docker-init-complete"
 
