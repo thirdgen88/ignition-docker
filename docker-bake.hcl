@@ -15,7 +15,7 @@ variable "IGNITION_VERSION_79" {
 }
 
 variable "IGNITION_VERSION_81" {
-    default = "8.1.39"
+    default = "8.1.41"
 }
 
 # Ignition Base Build Targets
