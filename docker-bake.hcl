@@ -113,25 +113,3 @@ target "8_1-slim" {
         "${BASE_IMAGE_NAME}:latest-slim"
     ]
 }
-
-target "nightly" {
-    inherits = ["8_1-full"]
-    args = {
-        BUILD_EDITION = "nightly"
-    }
-    no-cache = true
-    tags = [
-        "${BASE_IMAGE_NAME}:nightly"
-    ]
-}
-
-target "nightly-slim" {
-    inherits = ["8_1-slim"]
-    args = {
-        BUILD_EDITION = "nightly"
-    }
-    no-cache = true
-    tags = [
-        "${BASE_IMAGE_NAME}:nightly"
-    ]
-}
