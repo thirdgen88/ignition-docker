@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS downloader
+FROM ubuntu:24.04 AS downloader
 LABEL maintainer "Kevin Collins <kcollins@purelinux.net>"
 
 # Install some prerequisite packages

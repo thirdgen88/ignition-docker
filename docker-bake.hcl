@@ -22,7 +22,7 @@ variable "IGNITION_VERSION_81" {
 target "7_9-base" {
     context = "7.9"
     contexts = {
-        jre-base = "docker-image://eclipse-temurin:8-jre-jammy"
+        jre-base = "docker-image://eclipse-temurin:8-jre-noble"
     }
     platforms = [
         "linux/amd64",
