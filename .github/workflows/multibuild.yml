@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.dockerhub_username }}
           password: ${{ secrets.dockerhub_token }}
       - name: Build
-        uses: docker/bake-action@v5.11.0
+        uses: docker/bake-action@v6.5.0
         env:
           BASE_IMAGE_NAME: ${{ inputs.base_image_name }}
         with:
