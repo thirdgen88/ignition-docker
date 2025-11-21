@@ -23,7 +23,7 @@ jobs:
       - name: Delete huge unnecessary tools folder
         run: rm -rf /opt/hostedtoolcache
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: QEMU Setup
         id: qemu
         uses: docker/setup-qemu-action@v3.2.0
